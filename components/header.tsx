@@ -26,16 +26,21 @@ export function Header() {
                     <span className="font-bold">BETTER-PLAN.</span>
                 </Link>
 
-                <nav className="flex items-center gap-4">
-                    <Link
-                        to="/app/integrations"
-                        className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-                    >
-                        Integrations
-                    </Link>
-                </nav>
-
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4">
+                    <nav className="flex items-center gap-4 border-r pr-4">
+                        <Link
+                            to="/app"
+                            className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                        >
+                            Home
+                        </Link>
+                        <Link
+                            to="/app/integrations"
+                            className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                        >
+                            Integrations
+                        </Link>
+                    </nav>
                     <ModeToggle />
                     <UserButton className="text-xs" />
                 </div>

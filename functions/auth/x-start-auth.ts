@@ -1,7 +1,7 @@
+import { envConfig } from "@/lib/env"
 import { createServerFn } from "@tanstack/react-start"
 import { setCookie } from "@tanstack/react-start/server"
 import { TwitterApi } from "twitter-api-v2"
-import { envConfig } from "@/lib/env"
 
 export const startXAuthorization = createServerFn({ method: "POST" }).handler(async () => {
     if (!envConfig.X_CLIENT_ID || !envConfig.X_CLIENT_SECRET) {

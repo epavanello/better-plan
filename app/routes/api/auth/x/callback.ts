@@ -1,12 +1,12 @@
 import { db } from "@/database/db"
 import { integrations } from "@/database/schema"
 import { auth } from "@/lib/auth"
+import { envConfig } from "@/lib/env"
 import { createAPIFileRoute } from "@tanstack/react-start/api"
 import { getCookie, setCookie } from "@tanstack/react-start/server"
+import { eq } from "drizzle-orm"
 import { TwitterApi } from "twitter-api-v2"
 import { ulid } from "ulid"
-import { envConfig } from "@/lib/env"
-import { eq } from "drizzle-orm"
 
 export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
     GET: async ({ request }) => {

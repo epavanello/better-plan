@@ -4,6 +4,7 @@ import { organization } from "better-auth/plugins"
 
 import { db } from "@/database/db"
 import * as schema from "@/database/schema"
+import { getWebRequest } from "@tanstack/react-start/server"
 
 export const auth = betterAuth({
     database: drizzleAdapter(db, {
@@ -16,3 +17,22 @@ export const auth = betterAuth({
     },
     plugins: [organization()]
 })
+
+export const getSessionOrThrow = async () => {
+    const headers = getWebRequest()?.headers
+    if (!headers) {
+        throw new Error("No headers")
+    }
+    const session = await auth.api.getSession({
+        query: {
+            disableCookieCache: true
+        },
+        headers
+    })
+
+    if (!session?.user.id) {
+        throw new Error("User not authenticated")
+    }
+
+    return session
+}
