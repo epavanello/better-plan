@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { createFileRoute } from "@tanstack/react-router"
 import { Rocket } from "lucide-react"
 
-export const Route = createFileRoute("/_authed/app/")({
+export const Route = createFileRoute("/_protected/app/")({
     component: RouteComponent
 })
 
