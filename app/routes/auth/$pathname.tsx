@@ -1,4 +1,3 @@
-import { cn } from "@/lib/utils"
 import { AuthCard } from "@daveyplate/better-auth-ui"
 import { createFileRoute } from "@tanstack/react-router"
 

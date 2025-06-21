@@ -2,9 +2,9 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import type { ReactNode } from "react"
 
 import { Header } from "@/components/header"
+import { authClient } from "@/lib/auth-client"
 import globalsCss from "@/styles/globals.css?url"
 import { Providers } from "../providers"
-import { authClient } from "@/lib/auth-client"
 
 export const Route = createRootRoute({
     head: () => ({

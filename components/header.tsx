@@ -23,8 +23,17 @@ export function Header() {
                             fillRule="evenodd"
                         />
                     </svg>
-                    BETTER-PLAN.
+                    <span className="font-bold">BETTER-PLAN.</span>
                 </Link>
+
+                <nav className="flex items-center gap-4">
+                    <Link
+                        to="/app/integrations"
+                        className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                    >
+                        Integrations
+                    </Link>
+                </nav>
 
                 <div className="flex items-center gap-2">
                     <ModeToggle />

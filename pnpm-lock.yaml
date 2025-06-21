@@ -13,7 +13,7 @@ importers:
         version: 1.3.4(@tanstack/query-core@5.74.4)(@tanstack/react-query@5.74.4(react@19.1.0))(better-auth@1.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       '@daveyplate/better-auth-ui':
         specifier: ^1.5.2
-        version: 1.5.2(aa76ba3b66f42f164ec590df97db8fc2)
+        version: 1.5.2(dfeb6960eb1229bd2e5eda0b914f29d4)
       '@radix-ui/react-dropdown-menu':
         specifier: ^2.1.11
         version: 2.1.11(@types/react-dom@19.1.2(@types/react@19.1.2))(@types/react@19.1.2)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -77,9 +77,18 @@ importers:
       tailwindcss-safe-area:
         specifier: ^0.6.0
         version: 0.6.0(tailwindcss@4.1.4)
+      twitter-api-v2:
+        specifier: ^1.23.2
+        version: 1.23.2
+      ulid:
+        specifier: ^3.0.1
+        version: 3.0.1
       vinxi:
         specifier: ^0.5.4
         version: 0.5.4(@netlify/blobs@8.2.0)(@types/node@22.14.1)(db0@0.3.2(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)))(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1))(ioredis@5.6.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
+      zod:
+        specifier: ^3.25.67
+        version: 3.25.67
     devDependencies:
       '@types/react':
         specifier: ^19.1.2
@@ -5138,6 +5147,9 @@ packages:
   tw-animate-css@1.2.8:
     resolution: {integrity: sha512-AxSnYRvyFnAiZCUndS3zQZhNfV/B77ZhJ+O7d3K6wfg/jKJY+yv6ahuyXwnyaYA9UdLqnpCwhTRv9pPTBnPR2g==}
 
+  twitter-api-v2@1.23.2:
+    resolution: {integrity: sha512-m0CGXmfGwUhWBOOTVCIXIoSEXwGCQV3Es9yraCwUxaVrjJT2CQcqDrQsQTpBhtiAvVL2HS1cCEGsotNjfX9log==}
+
   type-fest@2.19.0:
     resolution: {integrity: sha512-RAH822pAdBgcNMAfWnCBU3CFZcfZ/i1eZjwFU/dsLKumyuuP3niueg2UAukXYF0E2AAoc82ZSSf9J0WQBinzHA==}
     engines: {node: '>=12.20'}
@@ -5160,6 +5172,10 @@ packages:
 
   ufo@1.6.1:
     resolution: {integrity: sha512-9a4/uxlTWJ4+a5i0ooc1rU7C7YOw3wT+UGqdeNNHWnOF9qcMBgLRS+4IYUqbczewFx4mLEig6gawh7X6mFlEkA==}
+
+  ulid@3.0.1:
+    resolution: {integrity: sha512-dPJyqPzx8preQhqq24bBG1YNkvigm87K8kVEHCD+ruZg24t6IFEFv00xMWfxcC4djmFtiTLdFuADn4+DOz6R7Q==}
+    hasBin: true
 
   ultrahtml@1.6.0:
     resolution: {integrity: sha512-R9fBn90VTJrqqLDwyMph+HGne8eqY1iPfYhPzZrvKpIfwkWZbcYlfpsb8B9dTvBfpy1/hqAD7Wi8EKfP9e8zdw==}
@@ -5528,8 +5544,8 @@ packages:
     resolution: {integrity: sha512-zK7YHHz4ZXpW89AHXUPbQVGKI7uvkd3hzusTdotCg1UxyaVtg0zFJSTfW/Dq5f7OBBVnq6cZIaC8Ti4hb6dtCA==}
     engines: {node: '>= 14'}
 
-  zod@3.24.3:
-    resolution: {integrity: sha512-HhY1oqzWCQWuUqvBFnsyrtZRhyPeR7SUGv+C4+MsisMuVfSPx8HpwWqH8tRahSlt6M3PiFAcoeFhZAqIXTxoSg==}
+  zod@3.25.67:
+    resolution: {integrity: sha512-idA2YXwpCdqUSKRCACDE6ItZD9TZzy3OZMtpfLoh6oPR47lipysRrJfjzMqFxQ3uJuUPyUeWe1r9vLH33xO/Qw==}
 
 snapshots:
 
@@ -5690,7 +5706,7 @@ snapshots:
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
 
-  '@daveyplate/better-auth-ui@1.5.2(aa76ba3b66f42f164ec590df97db8fc2)':
+  '@daveyplate/better-auth-ui@1.5.2(dfeb6960eb1229bd2e5eda0b914f29d4)':
     dependencies:
       '@better-fetch/fetch': 1.1.18
       '@daveyplate/better-auth-tanstack': 1.3.4(@tanstack/query-core@5.74.4)(@tanstack/react-query@5.74.4(react@19.1.0))(better-auth@1.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -5723,7 +5739,7 @@ snapshots:
       tailwind-merge: 3.2.0
       tailwindcss: 4.1.4
       ua-parser-js: 2.0.3
-      zod: 3.24.3
+      zod: 3.25.67
 
   '@deno/shim-deno-test@0.5.0': {}
 
@@ -6373,7 +6389,7 @@ snapshots:
       unixify: 1.0.0
       urlpattern-polyfill: 8.0.2
       yargs: 17.7.2
-      zod: 3.24.3
+      zod: 3.25.67
     transitivePeerDependencies:
       - encoding
       - rollup
@@ -7477,7 +7493,7 @@ snapshots:
       react-dom: 19.1.0(react@19.1.0)
       vinxi: 0.5.3(@netlify/blobs@8.2.0)(@types/node@22.14.1)(db0@0.3.2(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)))(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1))(ioredis@5.6.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
       vite: 6.3.2(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
-      zod: 3.24.3
+      zod: 3.25.67
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -7693,7 +7709,7 @@ snapshots:
       '@tanstack/virtual-file-routes': 1.115.0
       prettier: 3.5.3
       tsx: 4.19.3
-      zod: 3.24.3
+      zod: 3.25.67
     optionalDependencies:
       '@tanstack/react-router': 1.116.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
@@ -7715,7 +7731,7 @@ snapshots:
       babel-dead-code-elimination: 1.0.10
       chokidar: 3.6.0
       unplugin: 2.3.2
-      zod: 3.24.3
+      zod: 3.25.67
     optionalDependencies:
       '@tanstack/react-router': 1.116.0(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       vite: 6.3.2(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
@@ -8201,7 +8217,7 @@ snapshots:
       jose: 5.10.0
       kysely: 0.27.6
       nanostores: 0.11.4
-      zod: 3.24.3
+      zod: 3.25.67
 
   better-call@1.0.8:
     dependencies:
@@ -10635,6 +10651,8 @@ snapshots:
 
   tw-animate-css@1.2.8: {}
 
+  twitter-api-v2@1.23.2: {}
+
   type-fest@2.19.0: {}
 
   type-fest@4.40.0: {}
@@ -10654,6 +10672,8 @@ snapshots:
       - encoding
 
   ufo@1.6.1: {}
+
+  ulid@3.0.1: {}
 
   ultrahtml@1.6.0: {}
 
@@ -10842,7 +10862,7 @@ snapshots:
       unenv: 1.10.0
       unstorage: 1.15.0(@netlify/blobs@8.2.0)(db0@0.3.2(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)))(ioredis@5.6.1)
       vite: 6.3.2(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
-      zod: 3.24.3
+      zod: 3.25.67
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -10920,7 +10940,7 @@ snapshots:
       unenv: 1.10.0
       unstorage: 1.15.0(@netlify/blobs@8.2.0)(db0@0.3.2(drizzle-orm@0.42.0(@neondatabase/serverless@0.10.4)(@types/pg@8.11.6)(gel@2.0.2)(kysely@0.27.6)(pg@8.14.1)))(ioredis@5.6.1)
       vite: 6.3.2(@types/node@22.14.1)(jiti@2.4.2)(lightningcss@1.29.2)(terser@5.39.0)(tsx@4.19.3)
-      zod: 3.24.3
+      zod: 3.25.67
     transitivePeerDependencies:
       - '@azure/app-configuration'
       - '@azure/cosmos'
@@ -11116,4 +11136,4 @@ snapshots:
       compress-commons: 6.0.2
       readable-stream: 4.7.0
 
-  zod@3.24.3: {}
+  zod@3.25.67: {}
