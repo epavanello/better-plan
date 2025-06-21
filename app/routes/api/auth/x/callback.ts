@@ -2,13 +2,18 @@ import { db } from "@/database/db"
 import { integrations } from "@/database/schema"
 import { auth } from "@/lib/auth"
 import { createAPIFileRoute } from "@tanstack/react-start/api"
-import { redirect } from "@tanstack/react-router"
-import { getCookie, setCookie, setHeader } from "@tanstack/react-start/server"
+import { getCookie, setCookie } from "@tanstack/react-start/server"
 import { TwitterApi } from "twitter-api-v2"
 import { ulid } from "ulid"
+import { envConfig } from "@/lib/env"
+import { eq } from "drizzle-orm"
 
 export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
     GET: async ({ request }) => {
+        if (!envConfig.X_CLIENT_ID || !envConfig.X_CLIENT_SECRET) {
+            return new Response("X client ID or secret not set", { status: 500 })
+        }
+
         const url = new URL(request.url)
         const oauthToken = url.searchParams.get("oauth_token")
         const oauthVerifier = url.searchParams.get("oauth_verifier")
@@ -32,8 +37,8 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
         }
 
         const client = new TwitterApi({
-            appKey: process.env.X_CLIENT_ID!,
-            appSecret: process.env.X_CLIENT_SECRET!,
+            appKey: envConfig.X_CLIENT_ID,
+            appSecret: envConfig.X_CLIENT_SECRET,
             accessToken: oauth_token,
             accessSecret: oauth_token_secret
         })
@@ -48,6 +53,19 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
             data: { id: platformAccountId, name, username: platformAccountName }
         } = await loggedClient.v2.me({ "user.fields": ["profile_image_url"] })
 
+        const existingIntegration = await db
+            .select()
+            .from(integrations)
+            .where(
+                eq(integrations.userId, session.user.id) &&
+                    eq(integrations.platformAccountId, platformAccountId)
+            )
+            .limit(1)
+
+        if (existingIntegration.length > 0) {
+            return new Response("Account already connected", { status: 409 })
+        }
+
         await db.insert(integrations).values({
             id: ulid(),
             platform: "x",
@@ -61,10 +79,10 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
 
         setCookie("x_oauth_token", "", {
             httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
+            secure: envConfig.NODE_ENV === "production",
             path: "/",
             maxAge: 0
         })
-        return Response.redirect(`${process.env.APP_URL}/app/integrations`, 302)
+        return Response.redirect(`${envConfig.APP_URL}/app/integrations`, 302)
     }
 })
