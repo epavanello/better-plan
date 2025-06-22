@@ -1,3 +1,4 @@
+import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
 import {
     Select,
@@ -7,11 +8,13 @@ import {
     SelectValue
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import type { Platform } from "@/database/schema/integrations"
 import { getIntegrations } from "@/functions/integrations"
 import { createPost, getPosts } from "@/functions/posts"
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
-import { Rocket, X } from "lucide-react"
+import { formatRelative } from "date-fns"
+import { ExternalLink, Rocket, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -64,8 +67,14 @@ function RouteComponent() {
     }
 
     return (
-        <div className="flex h-full w-full flex-1 flex-col items-center gap-4 p-4">
-            <div className="w-full max-w-lg rounded-lg border p-4">
+        <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
+            <div className="space-y-2">
+                <h1 className="font-bold text-2xl">Dashboard</h1>
+                <p className="text-muted-foreground">
+                    Create a new post and view your scheduled and published content.
+                </p>
+            </div>
+            <div className="w-full rounded-lg border p-4">
                 <h2 className="mb-4 font-semibold text-lg">Create a new post</h2>
                 <div className="grid gap-4">
                     <Select onValueChange={setIntegrationId} value={integrationId}>
@@ -75,7 +84,10 @@ function RouteComponent() {
                         <SelectContent>
                             {integrations.map((i) => (
                                 <SelectItem key={i.id} value={i.id}>
-                                    {i.platformAccountName} ({i.platform})
+                                    <div className="flex items-center gap-2">
+                                        {platformIcons[i.platform]}
+                                        <span>{i.platformAccountName}</span>
+                                    </div>
                                 </SelectItem>
                             ))}
                         </SelectContent>
@@ -98,18 +110,42 @@ function RouteComponent() {
                     </div>
                 </div>
             </div>
-            <div className="w-full max-w-lg">
+            <div className="w-full">
                 <h2 className="mb-4 font-semibold text-lg">Your Posts</h2>
                 <div className="rounded-lg border">
                     <div className="divide-y divide-border">
                         {posts.length > 0 ? (
                             posts.map((post) => (
                                 <div key={post.id} className="p-4">
-                                    <p className="mb-2 text-muted-foreground text-sm">
-                                        {post.integration?.platformAccountName} (
-                                        {post.integration?.platform}) -{" "}
-                                        <span className="capitalize">{post.status}</span>
-                                    </p>
+                                    <div className="mb-2 flex items-center justify-between text-muted-foreground text-sm">
+                                        <div className="flex items-center gap-2">
+                                            {platformIcons[post.integration?.platform as Platform]}
+                                            {post.integration?.platformAccountName}
+                                            {" - "}
+                                            <span className="capitalize">{post.status}</span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <time
+                                                title={new Date(post.createdAt).toLocaleString()}
+                                                dateTime={new Date(post.createdAt).toISOString()}
+                                            >
+                                                {formatRelative(
+                                                    new Date(post.createdAt),
+                                                    new Date()
+                                                )}
+                                            </time>
+                                            {post.postUrl && (
+                                                <a
+                                                    href={post.postUrl}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-muted-foreground hover:text-foreground"
+                                                >
+                                                    <ExternalLink className="h-4 w-4" />
+                                                </a>
+                                            )}
+                                        </div>
+                                    </div>
                                     <p>{post.content}</p>
                                 </div>
                             ))

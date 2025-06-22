@@ -15,6 +15,7 @@ export const posts = pgTable("posts", {
     status: postStatusEnum("status").notNull().default("draft"),
     scheduledAt: timestamp("scheduled_at"),
     postedAt: timestamp("posted_at"),
+    postUrl: text("post_url"),
     failCount: text("fail_count").default("0"),
     failReason: text("fail_reason"),
     integrationId: text("integration_id")

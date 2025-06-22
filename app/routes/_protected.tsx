@@ -2,8 +2,8 @@ import { createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/_protected")({
     beforeLoad: ({ context }) => {
-        console.log("context", context)
-        if (!context.session) {
+        console.log("before", context)
+        if (!context.session.data?.user) {
             throw redirect({
                 to: "/auth/$pathname",
                 params: {

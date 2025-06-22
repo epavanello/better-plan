@@ -2,7 +2,17 @@ import { relations } from "drizzle-orm"
 import { pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core"
 import { users } from "../../auth-schema"
 
-export const platformEnum = pgEnum("platform", ["x", "reddit"])
+export const platformEnum = pgEnum("platform", [
+    "x",
+    "reddit",
+    "instagram",
+    "tiktok",
+    "youtube",
+    "facebook",
+    "linkedin"
+])
+
+export type Platform = (typeof platformEnum.enumValues)[number]
 
 export const integrations = pgTable("integrations", {
     id: text("id").primaryKey(),

@@ -46,10 +46,14 @@ export const createPost = createServerFn({ method: "POST" })
             })
 
             try {
-                await twitterClient.v2.tweet(post.content)
+                const tweet = await twitterClient.v2.tweet(post.content)
                 await db
                     .update(posts)
-                    .set({ status: "posted", postedAt: new Date() })
+                    .set({
+                        status: "posted",
+                        postedAt: new Date(),
+                        postUrl: `https://x.com/${integration.platformAccountName}/status/${tweet.data.id}`
+                    })
                     .where(eq(posts.id, post.id))
             } catch (error) {
                 console.error("Failed to post to X", error)
@@ -75,6 +79,8 @@ export const getPosts = createServerFn({ method: "GET" }).handler(async () => {
             id: posts.id,
             content: posts.content,
             status: posts.status,
+            createdAt: posts.createdAt,
+            postUrl: posts.postUrl,
             scheduledAt: posts.scheduledAt,
             postedAt: posts.postedAt,
             integration: {
