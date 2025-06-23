@@ -1,8 +1,8 @@
 import { UserButton } from "@daveyplate/better-auth-ui"
 
+import { useSession } from "@/hooks/auth-hooks"
 import { Link } from "@tanstack/react-router"
 import { ModeToggle } from "./mode-toggle"
-import { useSession } from "@/hooks/auth-hooks"
 
 export function Header() {
     const session = useSession()
@@ -47,7 +47,8 @@ export function Header() {
                             </>
                         ) : (
                             <Link
-                                to="/auth/sign-in"
+                                to="/auth/$pathname"
+                                params={{ pathname: "sign-in" }}
                                 className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                             >
                                 Login

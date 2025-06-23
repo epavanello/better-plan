@@ -2,9 +2,9 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import type { ReactNode } from "react"
 
 import { Header } from "@/components/header"
+import { getServerSession } from "@/functions/session"
 import globalsCss from "@/styles/globals.css?url"
 import { Providers } from "../providers"
-import { getServerSession } from "@/functions/session"
 
 export const Route = createRootRoute({
     head: () => ({
