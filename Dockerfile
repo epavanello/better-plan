@@ -16,6 +16,9 @@ COPY . .
 # Ensure the migrations directory exists, even if no migrations have been generated yet
 RUN mkdir -p database/migrations
 
+# Set NODE_ENV to production for consistent builds
+ENV NODE_ENV=production
+
 # Build the application
 # This will also compile the migration script
 RUN pnpm build
