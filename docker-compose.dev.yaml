@@ -5,9 +5,9 @@ services:
     image: postgres:16-alpine
     container_name: better-plan-postgres-dev
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: better-plan
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     ports:
     - "5432:5432"
     volumes:

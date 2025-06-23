@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "vinxi dev",
         "build": "vinxi build",
-        "start": "vinxi start",
+        "start": "dotenv -e .env -- vinxi start",
         "lint": "biome check",
         "lint:fix": "biome check --write",
         "check-types": "tsc --noEmit",
@@ -54,6 +54,7 @@
         "@types/react": "^19.1.2",
         "@types/react-dom": "^19.1.2",
         "@vitejs/plugin-react": "^4.4.1",
+        "dotenv-cli": "^8.0.0",
         "drizzle-kit": "^0.31.0",
         "tailwindcss": "^4.1.4",
         "tailwindcss-safe-area": "^0.6.0",
