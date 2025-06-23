@@ -1,3 +1,12 @@
 import { envConfig } from "@/lib/env"
 import { drizzle } from "drizzle-orm/node-postgres"
-export const db = drizzle(envConfig.DATABASE_URL)
+import pg from "pg"
+
+export const pool = new pg.Pool({
+    connectionString: envConfig.DATABASE_URL,
+    max: 20,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 2000
+})
+
+export const db = drizzle({ client: pool })

@@ -1,12 +1,23 @@
 import { z } from "zod"
 
-const envSchema = z.object({
-    DATABASE_URL: z.string().url(),
-    APP_URL: z.string().url(),
-    X_CLIENT_ID: z.string().optional(),
-    X_CLIENT_SECRET: z.string().optional(),
-    NODE_ENV: z.enum(["development", "production"]).default("development")
-})
+const envSchema = z
+    .object({
+        POSTGRES_HOST: z.string(),
+        POSTGRES_PORT: z.coerce.number().int(),
+        POSTGRES_USER: z.string(),
+        POSTGRES_PASSWORD: z.string(),
+        POSTGRES_DB: z.string(),
+        APP_URL: z.string().url(),
+        X_CLIENT_ID: z.string().optional(),
+        X_CLIENT_SECRET: z.string().optional(),
+        BETTER_AUTH_SECRET: z.string().min(1),
+        NODE_ENV: z.enum(["development", "production"]).default("development"),
+        DISABLE_SIGNUP: z.boolean().default(false)
+    })
+    .transform((env) => ({
+        ...env,
+        DATABASE_URL: `postgres://${env.POSTGRES_USER}:${env.POSTGRES_PASSWORD}@${env.POSTGRES_HOST}:${env.POSTGRES_PORT}/${env.POSTGRES_DB}`
+    }))
 
 export type EnvConfig = z.infer<typeof envSchema>
 

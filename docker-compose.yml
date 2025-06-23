@@ -1,18 +1,49 @@
 version: '3.8'
 
+networks:
+  app-network:
+    driver: bridge
+
 services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: better-plan-app
+    ports:
+    - "3000:3000"
+    environment:
+    # --- Connection details from .env file
+    - POSTGRES_USER=${POSTGRES_USER}
+    - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    - POSTGRES_DB=${POSTGRES_DB}
+    - POSTGRES_PORT=${POSTGRES_PORT}
+    # --- Host override for Docker's internal network
+    - POSTGRES_HOST=postgres
+    # --- Other application variables
+    - APP_URL=${APP_URL}
+    - X_CLIENT_ID=${X_CLIENT_ID}
+    - X_CLIENT_SECRET=${X_CLIENT_SECRET}
+    - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET}
+    - DISABLE_SIGNUP=${DISABLE_SIGNUP}
+    depends_on:
+    - postgres
+    restart: unless-stopped
+    networks:
+    - app-network
+
   postgres:
     image: postgres:16-alpine
     container_name: better-plan-postgres
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: better-plan
-    ports:
-    - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
     volumes:
     - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
+    networks:
+    - app-network
 
 volumes:
   postgres_data:
