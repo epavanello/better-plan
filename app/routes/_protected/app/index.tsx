@@ -51,7 +51,7 @@ function RouteComponent() {
 
     const handleSubmit = () => {
         if (!integrationId) {
-            toast.error("Please select an integration.")
+            toast.error("Please select a platform.")
             return
         }
         if (!content) {
@@ -79,17 +79,23 @@ function RouteComponent() {
                 <div className="grid gap-4">
                     <Select onValueChange={setIntegrationId} value={integrationId}>
                         <SelectTrigger>
-                            <SelectValue placeholder="Select an integration" />
+                            <SelectValue placeholder="Select a platform" />
                         </SelectTrigger>
                         <SelectContent>
-                            {integrations.map((i) => (
-                                <SelectItem key={i.id} value={i.id}>
-                                    <div className="flex items-center gap-2">
-                                        {platformIcons[i.platform]}
-                                        <span>{i.platformAccountName}</span>
-                                    </div>
+                            {integrations.length > 0 ? (
+                                integrations.map((i) => (
+                                    <SelectItem key={i.id} value={i.id}>
+                                        <div className="flex items-center gap-2">
+                                            {platformIcons[i.platform]}
+                                            <span>{i.platformAccountName}</span>
+                                        </div>
+                                    </SelectItem>
+                                ))
+                            ) : (
+                                <SelectItem value="no-platforms" disabled>
+                                    No platforms connected
                                 </SelectItem>
-                            ))}
+                            )}
                         </SelectContent>
                     </Select>
                     <Textarea

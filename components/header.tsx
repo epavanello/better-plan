@@ -39,10 +39,10 @@ export function Header() {
                                     Home
                                 </Link>
                                 <Link
-                                    to="/app/integrations"
+                                    to="/app/platforms"
                                     className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                                 >
-                                    Integrations
+                                    Platforms
                                 </Link>
                             </>
                         ) : (

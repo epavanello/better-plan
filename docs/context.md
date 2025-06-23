@@ -16,7 +16,7 @@
 The authentication flow uses **OAuth 1.0a**, providing non-expiring tokens. The implementation is confirmed to be working and follows this two-step process:
 
 **Step 1: Initiating Authorization**
-- **Trigger**: The user clicks a button on the `/app/integrations` page.
+- **Trigger**: The user clicks a button on the `/app/platforms` page.
 - **Action**: A `useMutation` hook calls the `startXAuthorization` server function located in `functions/auth/x-start-auth.ts`.
 - **Server Function Logic**:
     1. Uses `twitter-api-v2` to generate an authentication URL and temporary `oauth_token` / `oauth_token_secret`.
@@ -31,7 +31,7 @@ The authentication flow uses **OAuth 1.0a**, providing non-expiring tokens. The 
     3. Uses `twitter-api-v2`'s `.login()` method to exchange the temporary tokens for permanent `accessToken` and `accessSecret`.
     4. Fetches the current app user's session with `auth.api.getSession()`.
     5. Saves the new integration (including platform ID, username, and permanent tokens) to the database, linked to the app user's ID.
-    6. Redirects the user back to the `/app/integrations` page.
+    6. Redirects the user back to the `/app/platforms` page.
 
 ### 4. Environment
 - The application requires a `.env` file with `X_CLIENT_ID`, `X_CLIENT_SECRET`, and `APP_URL` (e.g., `http://localhost:3000`).

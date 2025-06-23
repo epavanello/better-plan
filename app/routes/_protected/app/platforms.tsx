@@ -8,7 +8,7 @@ import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { PlusCircle, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 
-export const Route = createFileRoute("/_protected/app/integrations")({
+export const Route = createFileRoute("/_protected/app/platforms")({
     loader: () => getIntegrations(),
     component: IntegrationsComponent
 })

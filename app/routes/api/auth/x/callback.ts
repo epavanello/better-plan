@@ -79,6 +79,6 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
             path: "/",
             maxAge: 0
         })
-        return Response.redirect(`${envConfig.APP_URL}/app/integrations`, 302)
+        return Response.redirect(`${envConfig.APP_URL}/app/platforms`, 302)
     }
 })
