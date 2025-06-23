@@ -1,6 +1,6 @@
 import { db } from "@/database/db"
 import { integrations } from "@/database/schema"
-import { auth } from "@/lib/auth"
+import { getSessionOrThrow } from "@/lib/auth"
 import { envConfig } from "@/lib/env"
 import { createAPIFileRoute } from "@tanstack/react-start/api"
 import { getCookie, setCookie } from "@tanstack/react-start/server"
@@ -30,11 +30,7 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
         }
 
         // Get our app's user session
-        const session = await auth.api.getSession({ headers: request.headers })
-        if (!session?.user) {
-            // This should not happen if the user started the flow from the app
-            return new Response("Unauthorized", { status: 401 })
-        }
+        const session = await getSessionOrThrow()
 
         const client = new TwitterApi({
             appKey: envConfig.X_CLIENT_ID,

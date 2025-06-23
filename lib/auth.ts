@@ -5,6 +5,7 @@ import { organization } from "better-auth/plugins"
 import { db } from "@/database/db"
 import * as schema from "@/database/schema"
 import { getWebRequest } from "@tanstack/react-start/server"
+import { reactStartCookies } from "better-auth/react-start"
 import { envConfig } from "./env"
 
 export const auth = betterAuth({
@@ -17,24 +18,22 @@ export const auth = betterAuth({
         enabled: true,
         disableSignUp: envConfig.DISABLE_SIGNUP
     },
-    plugins: [organization()]
+    plugins: [organization(), reactStartCookies()]
 })
 
-export const getSessionOrThrow = async () => {
+export const getSession = async () => {
     const headers = getWebRequest()?.headers
     if (!headers) {
         throw new Error("No headers")
     }
-    const session = await auth.api.getSession({
-        query: {
-            disableCookieCache: true
-        },
-        headers
-    })
+    const session = await auth.api.getSession({ headers })
+    return session
+}
 
-    if (!session?.user.id) {
-        throw new Error("User not authenticated")
+export const getSessionOrThrow = async () => {
+    const session = await getSession()
+    if (!session) {
+        throw new Error("No session")
     }
-
     return session
 }

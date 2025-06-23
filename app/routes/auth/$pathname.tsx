@@ -1,8 +1,13 @@
 import { AuthCard } from "@daveyplate/better-auth-ui"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, redirect } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/auth/$pathname")({
-    component: RouteComponent
+    component: RouteComponent,
+    beforeLoad: async ({ context, location }) => {
+        if (context.user && ["/auth/sign-in", "/auth/sign-up"].includes(location.pathname)) {
+            throw redirect({ to: "/app" })
+        }
+    }
 })
 
 function RouteComponent() {

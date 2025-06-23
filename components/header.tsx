@@ -2,8 +2,10 @@ import { UserButton } from "@daveyplate/better-auth-ui"
 
 import { Link } from "@tanstack/react-router"
 import { ModeToggle } from "./mode-toggle"
+import { useSession } from "@/hooks/auth-hooks"
 
 export function Header() {
+    const session = useSession()
     return (
         <header className="sticky top-0 z-50 border-b bg-background/60 px-4 py-3 backdrop-blur">
             <div className="container mx-auto flex items-center justify-between">
@@ -28,18 +30,29 @@ export function Header() {
 
                 <div className="flex items-center gap-4">
                     <nav className="flex items-center gap-4 border-r pr-4">
-                        <Link
-                            to="/app"
-                            className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-                        >
-                            Home
-                        </Link>
-                        <Link
-                            to="/app/integrations"
-                            className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-                        >
-                            Integrations
-                        </Link>
+                        {session.data?.user ? (
+                            <>
+                                <Link
+                                    to="/app"
+                                    className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                                >
+                                    Home
+                                </Link>
+                                <Link
+                                    to="/app/integrations"
+                                    className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                                >
+                                    Integrations
+                                </Link>
+                            </>
+                        ) : (
+                            <Link
+                                to="/auth/sign-in"
+                                className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
+                            >
+                                Login
+                            </Link>
+                        )}
                     </nav>
                     <ModeToggle />
                     <UserButton className="text-xs" />

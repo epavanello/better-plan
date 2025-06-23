@@ -12,7 +12,11 @@ const envSchema = z
         X_CLIENT_SECRET: z.string().optional(),
         BETTER_AUTH_SECRET: z.string().min(1),
         NODE_ENV: z.enum(["development", "production"]).default("development"),
-        DISABLE_SIGNUP: z.boolean().default(false)
+        DISABLE_SIGNUP: z
+            .string()
+            .default("false")
+            .transform((val) => val.toLowerCase() === "true")
+            .optional()
     })
     .transform((env) => ({
         ...env,

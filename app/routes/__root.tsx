@@ -2,9 +2,9 @@ import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-r
 import type { ReactNode } from "react"
 
 import { Header } from "@/components/header"
-import { authClient } from "@/lib/auth-client"
 import globalsCss from "@/styles/globals.css?url"
 import { Providers } from "../providers"
+import { getServerSession } from "@/functions/session"
 
 export const Route = createRootRoute({
     head: () => ({
@@ -28,8 +28,11 @@ export const Route = createRootRoute({
         ]
     }),
     beforeLoad: async () => {
-        const session = await authClient.getSession()
-        return { session }
+        const serverSession = await getServerSession()
+        return {
+            session: serverSession?.session,
+            user: serverSession?.user
+        }
     },
     component: RootComponent
 })
