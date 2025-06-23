@@ -1,16 +1,23 @@
+import { getSessionOrThrow } from "@/lib/auth"
 import { envConfig } from "@/lib/env"
+import { getEffectiveCredentials } from "@/lib/server/integrations"
 import { createServerFn } from "@tanstack/react-start"
 import { setCookie } from "@tanstack/react-start/server"
 import { TwitterApi } from "twitter-api-v2"
 
 export const startXAuthorization = createServerFn({ method: "POST" }).handler(async () => {
-    if (!envConfig.X_CLIENT_ID || !envConfig.X_CLIENT_SECRET) {
-        throw new Error("X client ID or secret not set")
+    const session = await getSessionOrThrow()
+
+    // Ottieni le credenziali effettive (sistema o utente)
+    const credentials = await getEffectiveCredentials("x", session.user.id)
+
+    if (!credentials) {
+        throw new Error("X credentials not configured. Please set up your X app credentials first.")
     }
 
     const client = new TwitterApi({
-        appKey: envConfig.X_CLIENT_ID,
-        appSecret: envConfig.X_CLIENT_SECRET
+        appKey: credentials.clientId,
+        appSecret: credentials.clientSecret
     })
 
     const callbackUrl = `${envConfig.APP_URL}/api/auth/x/callback`

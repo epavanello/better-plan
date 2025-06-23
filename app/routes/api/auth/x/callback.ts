@@ -2,6 +2,7 @@ import { db } from "@/database/db"
 import { integrations } from "@/database/schema"
 import { getSessionOrThrow } from "@/lib/auth"
 import { envConfig } from "@/lib/env"
+import { getEffectiveCredentials } from "@/lib/server/integrations"
 import { createAPIFileRoute } from "@tanstack/react-start/api"
 import { getCookie, setCookie } from "@tanstack/react-start/server"
 import { eq } from "drizzle-orm"
@@ -10,10 +11,6 @@ import { ulid } from "ulid"
 
 export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
     GET: async ({ request }) => {
-        if (!envConfig.X_CLIENT_ID || !envConfig.X_CLIENT_SECRET) {
-            return new Response("X client ID or secret not set", { status: 500 })
-        }
-
         const url = new URL(request.url)
         const oauthToken = url.searchParams.get("oauth_token")
         const oauthVerifier = url.searchParams.get("oauth_verifier")
@@ -32,9 +29,16 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
         // Get our app's user session
         const session = await getSessionOrThrow()
 
+        // Ottieni le credenziali effettive (sistema o utente)
+        const credentials = await getEffectiveCredentials("x", session.user.id)
+
+        if (!credentials) {
+            return new Response("X credentials not configured", { status: 500 })
+        }
+
         const client = new TwitterApi({
-            appKey: envConfig.X_CLIENT_ID,
-            appSecret: envConfig.X_CLIENT_SECRET,
+            appKey: credentials.clientId,
+            appSecret: credentials.clientSecret,
             accessToken: oauth_token,
             accessSecret: oauth_token_secret
         })
