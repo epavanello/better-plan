@@ -8,10 +8,9 @@ import { TwitterApi } from "twitter-api-v2"
 export const startXAuthorization = createServerFn({ method: "POST" }).handler(async () => {
     const session = await getSessionOrThrow()
 
-    // Ottieni le credenziali effettive (sistema o utente)
     const credentials = await getEffectiveCredentials("x", session.user.id)
 
-    if (!credentials) {
+    if (!credentials || !credentials.clientId || !credentials.clientSecret) {
         throw new Error("X credentials not configured. Please set up your X app credentials first.")
     }
 

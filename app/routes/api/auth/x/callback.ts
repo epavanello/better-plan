@@ -29,10 +29,9 @@ export const APIRoute = createAPIFileRoute("/api/auth/x/callback")({
         // Get our app's user session
         const session = await getSessionOrThrow()
 
-        // Ottieni le credenziali effettive (sistema o utente)
         const credentials = await getEffectiveCredentials("x", session.user.id)
 
-        if (!credentials) {
+        if (!credentials || !credentials.clientId || !credentials.clientSecret) {
             return new Response("X credentials not configured", { status: 500 })
         }
 

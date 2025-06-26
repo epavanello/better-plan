@@ -7,8 +7,7 @@ import {
     deleteIntegration,
     deleteUserAppCredentials,
     getIntegrations,
-    getPlatformRequiresUserCredentials,
-    getUserAppCredentials
+    getUserPlatformStatus
 } from "@/functions/integrations"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
@@ -21,37 +20,30 @@ export const Route = createFileRoute("/_protected/app/platforms")({
     component: IntegrationsComponent
 })
 
-// Configurazione delle piattaforme che potrebbero richiedere setup
 const PLATFORMS_WITH_POTENTIAL_SETUP: Platform[] = ["x"]
 
-// Hook personalizzato per gestire le piattaforme che richiedono setup
 function usePlatformSetup(platform: Platform) {
-    const { data: requiresSetup } = useQuery({
-        queryKey: ["platform-requirements", platform],
-        queryFn: () => getPlatformRequiresUserCredentials({ data: platform }),
+    const { data: platformStatus, refetch: refetchStatus } = useQuery({
+        queryKey: ["platform-status", platform],
+        queryFn: () => getUserPlatformStatus({ data: platform }),
         enabled: PLATFORMS_WITH_POTENTIAL_SETUP.includes(platform)
-    })
-
-    const { data: userCredentials, refetch: refetchCredentials } = useQuery({
-        queryKey: ["user-credentials", platform],
-        queryFn: () => getUserAppCredentials({ data: platform }),
-        enabled: requiresSetup?.requiresUserCredentials
     })
 
     const { mutate: removeCredentials, isPending: isRemoving } = useMutation({
         mutationFn: deleteUserAppCredentials,
         onSuccess: () => {
             toast.success("User credentials removed successfully.")
-            refetchCredentials()
+            refetchStatus()
         }
     })
 
     return {
-        requiresSetup: requiresSetup?.requiresUserCredentials || false,
-        hasCredentials: !!userCredentials,
-        canConnect: !requiresSetup?.requiresUserCredentials || !!userCredentials,
-        redirectUrl: requiresSetup?.redirectUrl,
-        refetchCredentials,
+        requiresSetup: platformStatus?.requiresSetup || false,
+        hasCredentials: platformStatus?.hasCredentials || false,
+        canConnect: platformStatus?.canConnect ?? true,
+        redirectUrl: platformStatus?.redirectUrl,
+        credentialSource: platformStatus?.source,
+        refetchStatus,
         removeCredentials,
         isRemovingCredentials: isRemoving
     }
@@ -62,7 +54,6 @@ function IntegrationsComponent() {
     const router = useRouter()
     const [setupPlatform, setSetupPlatform] = useState<Platform | null>(null)
 
-    // Setup hooks per le piattaforme che potrebbero richiedere configurazione
     const xSetup = usePlatformSetup("x")
 
     const { mutate: loginOnX, isPending: isLoginPending } = useMutation({
@@ -102,7 +93,7 @@ function IntegrationsComponent() {
     const handleSetupComplete = () => {
         if (setupPlatform) {
             const setup = getSetupForPlatform(setupPlatform)
-            setup?.refetchCredentials()
+            setup?.refetchStatus()
             toast.success(`You can now connect your ${setupPlatform.toUpperCase()} account!`)
         }
         setSetupPlatform(null)
@@ -123,6 +114,7 @@ function IntegrationsComponent() {
             requiresSetup: setup?.requiresSetup || false,
             hasCredentials: setup?.hasCredentials || false,
             canConnect: setup?.canConnect ?? true,
+            credentialSource: setup?.credentialSource,
             isRemovingCredentials: setup?.isRemovingCredentials || false,
             removeCredentials: setup?.removeCredentials
         }
@@ -263,21 +255,27 @@ function IntegrationsComponent() {
                                             {setupInfo.hasCredentials ? (
                                                 <div className="flex items-center justify-between rounded bg-green-50 px-3 py-2 dark:bg-green-950/20">
                                                     <span className="text-green-700 dark:text-green-300">
-                                                        App configured ✓
+                                                        {setupInfo.credentialSource === "system"
+                                                            ? "System configured ✓"
+                                                            : "App configured ✓"}
                                                     </span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="sm"
-                                                        onClick={() =>
-                                                            setupInfo.removeCredentials?.({
-                                                                data: platform
-                                                            })
-                                                        }
-                                                        disabled={setupInfo.isRemovingCredentials}
-                                                        className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
-                                                    >
-                                                        <Trash2 className="h-3 w-3" />
-                                                    </Button>
+                                                    {setupInfo.credentialSource === "user" && (
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() =>
+                                                                setupInfo.removeCredentials?.({
+                                                                    data: platform
+                                                                })
+                                                            }
+                                                            disabled={
+                                                                setupInfo.isRemovingCredentials
+                                                            }
+                                                            className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+                                                        >
+                                                            <Trash2 className="h-3 w-3" />
+                                                        </Button>
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="rounded bg-amber-50 px-3 py-2 text-amber-700 dark:bg-amber-950/20 dark:text-amber-300">

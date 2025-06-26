@@ -3,6 +3,7 @@ import { type InsertPost, insertPostSchema, posts } from "@/database/schema"
 import { integrations } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { envConfig } from "@/lib/env"
+import { getEffectiveCredentials } from "@/lib/server/integrations"
 import { createServerFn } from "@tanstack/react-start"
 import { eq } from "drizzle-orm"
 import { TwitterApi } from "twitter-api-v2"
@@ -24,6 +25,12 @@ export const createPost = createServerFn({ method: "POST" })
             .returning()
 
         if (post.status === "draft") {
+            const credentials = await getEffectiveCredentials("x", session.user.id)
+
+            if (!credentials) {
+                throw new Error("Credentials not found")
+            }
+
             const [integration] = await db
                 .select()
                 .from(integrations)
@@ -39,8 +46,8 @@ export const createPost = createServerFn({ method: "POST" })
             const [accessToken, accessSecret] = integration.accessToken.split(":")
 
             const twitterClient = new TwitterApi({
-                appKey: envConfig.X_CLIENT_ID!,
-                appSecret: envConfig.X_CLIENT_SECRET!,
+                appKey: credentials.clientId,
+                appSecret: credentials.clientSecret,
                 accessToken: accessToken,
                 accessSecret: accessSecret
             })

@@ -1,7 +1,11 @@
 import { db } from "@/database/db"
 import { type Platform, integrations, userAppCredentials } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
-import { envConfig } from "@/lib/env"
+import {
+    getPlatformCredentialsInfo,
+    getUserCredentialsInfo,
+    validatePlatformCredentials
+} from "@/lib/server/integrations"
 import { createServerFn } from "@tanstack/react-start"
 import { and, eq } from "drizzle-orm"
 import { ulid } from "ulid"
@@ -34,20 +38,28 @@ export const getPlatformRequiresUserCredentials = createServerFn({ method: "GET"
             .parse(payload)
     )
     .handler(async ({ data: platform }) => {
-        // Controlla se le credenziali di sistema sono disponibili per questa piattaforma
-        switch (platform) {
-            case "x":
-                return {
-                    requiresUserCredentials: !envConfig.X_CLIENT_ID || !envConfig.X_CLIENT_SECRET,
-                    redirectUrl: `${envConfig.APP_URL}/api/auth/x/callback`
-                }
-            // Aggiungi altri casi per altre piattaforme qui
-            default:
-                return { requiresUserCredentials: false, redirectUrl: null }
+        return await getPlatformCredentialsInfo(platform)
+    })
+
+// Funzione per ottenere lo stato completo delle credenziali utente per una piattaforma
+export const getUserPlatformStatus = createServerFn({ method: "GET" })
+    .validator((payload: Platform) =>
+        z
+            .enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"])
+            .parse(payload)
+    )
+    .handler(async ({ data: platform }) => {
+        const session = await getSessionOrThrow()
+        const userInfo = await getUserCredentialsInfo(platform, session.user.id)
+        const platformInfo = await getPlatformCredentialsInfo(platform)
+
+        return {
+            ...userInfo,
+            redirectUrl: platformInfo.redirectUrl
         }
     })
 
-// Funzione per ottenere le credenziali utente per una piattaforma
+// Funzione per ottenere le credenziali utente per una piattaforma (solo se necessarie)
 export const getUserAppCredentials = createServerFn({ method: "GET" })
     .validator((payload: Platform) =>
         z
@@ -56,22 +68,31 @@ export const getUserAppCredentials = createServerFn({ method: "GET" })
     )
     .handler(async ({ data: platform }) => {
         const session = await getSessionOrThrow()
+        const userInfo = await getUserCredentialsInfo(platform, session.user.id)
 
-        const credentials = await db
-            .select()
-            .from(userAppCredentials)
-            .where(
-                and(
-                    eq(userAppCredentials.userId, session.user.id),
-                    eq(userAppCredentials.platform, platform)
+        // Se usa credenziali di sistema, non restituire le credenziali utente
+        if (userInfo.source === "system") {
+            return null
+        }
+
+        if (userInfo.hasCredentials && userInfo.source === "user") {
+            const credentials = await db
+                .select()
+                .from(userAppCredentials)
+                .where(
+                    and(
+                        eq(userAppCredentials.userId, session.user.id),
+                        eq(userAppCredentials.platform, platform)
+                    )
                 )
-            )
-            .limit(1)
+                .limit(1)
 
-        return credentials[0] || null
+            return credentials[0] || null
+        }
+
+        return null
     })
 
-// Funzione per salvare le credenziali utente
 export const saveUserAppCredentials = createServerFn({ method: "POST" })
     .validator(
         z.object({
@@ -90,6 +111,12 @@ export const saveUserAppCredentials = createServerFn({ method: "POST" })
     )
     .handler(async ({ data: { platform, clientId, clientSecret } }) => {
         const session = await getSessionOrThrow()
+
+        const validation = await validatePlatformCredentials(platform, clientId, clientSecret)
+
+        if (!validation.valid) {
+            throw new Error(`Invalid credentials: ${validation.error || "Unknown error"}`)
+        }
 
         // Controlla se esistono già credenziali per questa piattaforma
         const existing = await db

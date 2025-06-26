@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { saveUserAppCredentials } from "@/functions/integrations"
 import { useMutation } from "@tanstack/react-query"
-import { ExternalLink, Info } from "lucide-react"
+import { ExternalLink, Info, AlertCircle } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -16,14 +16,18 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
     const [clientSecret, setClientSecret] = useState("")
     const [showGuide, setShowGuide] = useState(false)
 
-    const { mutate: saveCredentials, isPending } = useMutation({
+    const {
+        mutate: saveCredentials,
+        isPending,
+        error
+    } = useMutation({
         mutationFn: saveUserAppCredentials,
         onSuccess: () => {
-            toast.success("X credentials saved successfully!")
+            toast.success("X credentials validated and saved successfully!")
             onComplete()
         },
         onError: (error) => {
-            toast.error(`Error saving credentials: ${error.message}`)
+            toast.error(`${error.message}`)
         }
     })
 
@@ -53,7 +57,7 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
                         </h3>
                         <p className="mb-3 text-blue-800 text-sm dark:text-blue-200">
                             To connect your X account, you need to first create a Twitter app and
-                            enter your credentials here.
+                            enter your credentials here. We'll validate them before saving.
                         </p>
                         <Button
                             type="button"
@@ -111,6 +115,28 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
                 </div>
             )}
 
+            {error && (
+                <div className="rounded-lg border border-red-200 bg-red-50 p-4 dark:border-red-800 dark:bg-red-950/20">
+                    <div className="flex items-start gap-3">
+                        <AlertCircle className="mt-0.5 h-5 w-5 text-red-600 dark:text-red-400" />
+                        <div className="flex-1">
+                            <h4 className="font-semibold text-red-900 dark:text-red-100">
+                                Validation Failed
+                            </h4>
+                            <p className="mt-1 text-red-800 text-sm dark:text-red-200">
+                                {error.message}
+                            </p>
+                            <p className="mt-2 text-red-700 text-xs dark:text-red-300">
+                                Please check your credentials and make sure:
+                                <br />• The API Key and Secret are correct
+                                <br />• Your app has "Read and write" permissions
+                                <br />• The callback URL is properly configured
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                     <label htmlFor="clientId" className="font-medium text-sm">
@@ -123,6 +149,7 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
                         onChange={(e) => setClientId(e.target.value)}
                         placeholder="Enter your X app API Key"
                         required
+                        disabled={isPending}
                     />
                 </div>
 
@@ -137,12 +164,13 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
                         onChange={(e) => setClientSecret(e.target.value)}
                         placeholder="Enter your X app API Secret"
                         required
+                        disabled={isPending}
                     />
                 </div>
 
                 <div className="flex gap-2">
                     <Button type="submit" disabled={isPending}>
-                        {isPending ? "Saving..." : "Save credentials"}
+                        {isPending ? "Validating credentials..." : "Save credentials"}
                     </Button>
                 </div>
             </form>
