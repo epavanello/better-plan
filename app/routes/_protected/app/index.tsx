@@ -125,8 +125,8 @@ function RouteComponent() {
                                 <div key={post.id} className="p-4">
                                     <div className="mb-2 flex items-center justify-between text-muted-foreground text-sm">
                                         <div className="flex items-center gap-2">
-                                            {platformIcons[post.integration?.platform as Platform]}
-                                            {post.integration?.platformAccountName}
+                                            {platformIcons[post.integration.platform]}
+                                            {post.integration.platformAccountName}
                                             {" - "}
                                             <span className="capitalize">{post.status}</span>
                                         </div>

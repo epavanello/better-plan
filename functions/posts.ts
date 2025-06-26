@@ -81,7 +81,7 @@ export const createPost = createServerFn({ method: "POST" })
 export const getPosts = createServerFn({ method: "GET" }).handler(async () => {
     const session = await getSessionOrThrow()
 
-    return db
+    const result = await db
         .select({
             id: posts.id,
             content: posts.content,
@@ -96,7 +96,9 @@ export const getPosts = createServerFn({ method: "GET" }).handler(async () => {
             }
         })
         .from(posts)
-        .leftJoin(integrations, eq(posts.integrationId, integrations.id))
+        .innerJoin(integrations, eq(posts.integrationId, integrations.id))
         .where(eq(posts.userId, session.user.id))
         .orderBy(posts.createdAt)
+
+    return result
 })
