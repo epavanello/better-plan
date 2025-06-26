@@ -2,13 +2,13 @@ import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
 import { XAppSetup } from "@/components/x-app-setup"
 import type { Platform } from "@/database/schema/integrations"
-import { startXAuthorization } from "@/functions/auth/x-start-auth"
 import {
     deleteIntegration,
     deleteUserAppCredentials,
     getIntegrations,
     getUserPlatformStatus
 } from "@/functions/integrations"
+import { getAllPlatformInfo, startPlatformAuthorization } from "@/functions/platforms"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { PlusCircle, Settings, Trash2 } from "lucide-react"
@@ -16,17 +16,22 @@ import { useState } from "react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_protected/app/platforms")({
-    loader: () => getIntegrations(),
+    loader: async () => {
+        const [integrations, platformsInfo] = await Promise.all([
+            getIntegrations(),
+            getAllPlatformInfo()
+        ])
+        return { integrations, platformsInfo }
+    },
     component: IntegrationsComponent
 })
 
-const PLATFORMS_WITH_POTENTIAL_SETUP: Platform[] = ["x"]
-
+// Hook generico per gestire il setup di qualsiasi piattaforma
 function usePlatformSetup(platform: Platform) {
     const { data: platformStatus, refetch: refetchStatus } = useQuery({
         queryKey: ["platform-status", platform],
         queryFn: () => getUserPlatformStatus({ data: platform }),
-        enabled: PLATFORMS_WITH_POTENTIAL_SETUP.includes(platform)
+        enabled: true // Ora funziona per tutte le piattaforme
     })
 
     const { mutate: removeCredentials, isPending: isRemoving } = useMutation({
@@ -50,19 +55,25 @@ function usePlatformSetup(platform: Platform) {
 }
 
 function IntegrationsComponent() {
-    const integrations = Route.useLoaderData()
+    const { integrations, platformsInfo } = Route.useLoaderData()
     const router = useRouter()
     const [setupPlatform, setSetupPlatform] = useState<Platform | null>(null)
+    const [authorizingPlatform, setAuthorizingPlatform] = useState<Platform | null>(null)
 
-    const xSetup = usePlatformSetup("x")
+    // Hook generico per tutte le piattaforme che richiedono setup
+    const platformSetups = Object.fromEntries(
+        platformsInfo.filter((p) => p.requiresSetup).map((p) => [p.name, usePlatformSetup(p.name)])
+    ) as Record<Platform, ReturnType<typeof usePlatformSetup>>
 
-    const { mutate: loginOnX, isPending: isLoginPending } = useMutation({
-        mutationFn: startXAuthorization,
+    // Mutation generico per l'autorizzazione di qualsiasi piattaforma
+    const { mutate: startAuthorization, isPending: isAuthPending } = useMutation({
+        mutationFn: startPlatformAuthorization,
         onSuccess: ({ url }) => {
             window.location.href = url
         },
         onError: (error) => {
-            toast.error(`Error starting X authentication: ${error.message}`)
+            setAuthorizingPlatform(null)
+            toast.error(`Error starting authorization: ${error.message}`)
         }
     })
 
@@ -74,78 +85,38 @@ function IntegrationsComponent() {
         }
     })
 
+    // Handler generico per connettere qualsiasi piattaforma
     const handlePlatformConnect = (platform: Platform) => {
-        switch (platform) {
-            case "x": {
-                if (xSetup.requiresSetup && !xSetup.hasCredentials) {
-                    setSetupPlatform("x")
-                } else {
-                    loginOnX({})
-                }
-                break
-            }
-            // Aggiungi altri casi qui per future piattaforme
-            default:
-                toast.error(`Connection for ${platform} not implemented yet`)
+        const platformInfo = platformsInfo.find((p) => p.name === platform)
+        const setupInfo = platformSetups[platform]
+
+        if (!platformInfo?.isImplemented) {
+            toast.error(`${platformInfo?.displayName || platform} is not yet implemented`)
+            return
+        }
+
+        if (platformInfo.requiresSetup && setupInfo && !setupInfo.hasCredentials) {
+            setSetupPlatform(platform)
+        } else {
+            setAuthorizingPlatform(platform)
+            startAuthorization({ data: platform })
         }
     }
 
     const handleSetupComplete = () => {
-        if (setupPlatform) {
-            const setup = getSetupForPlatform(setupPlatform)
-            setup?.refetchStatus()
-            toast.success(`You can now connect your ${setupPlatform.toUpperCase()} account!`)
+        if (setupPlatform && platformSetups[setupPlatform]) {
+            platformSetups[setupPlatform].refetchStatus()
+            const platformInfo = platformsInfo.find((p) => p.name === setupPlatform)
+            toast.success(`You can now connect your ${platformInfo?.displayName} account!`)
         }
         setSetupPlatform(null)
     }
 
-    const getSetupForPlatform = (platform: Platform) => {
-        switch (platform) {
-            case "x":
-                return xSetup
-            default:
-                return null
-        }
-    }
-
-    const getPlatformSetupInfo = (platform: Platform) => {
-        const setup = getSetupForPlatform(platform)
-        return {
-            requiresSetup: setup?.requiresSetup || false,
-            hasCredentials: setup?.hasCredentials || false,
-            canConnect: setup?.canConnect ?? true,
-            credentialSource: setup?.credentialSource,
-            isRemovingCredentials: setup?.isRemovingCredentials || false,
-            removeCredentials: setup?.removeCredentials
-        }
-    }
-
-    const platforms: Record<
-        Platform,
-        {
-            connect?: () => void
-            pending?: boolean
-        }
-    > = {
-        x: {
-            connect: () => handlePlatformConnect("x"),
-            pending: isLoginPending
-        },
-        reddit: {},
-        instagram: {},
-        tiktok: {},
-        youtube: {},
-        facebook: {},
-        linkedin: {}
-    }
-
     const connectedPlatforms = integrations.map((i) => i.platform)
-    const availablePlatforms = (Object.keys(platforms) as Array<keyof typeof platforms>).filter(
-        (p) => !connectedPlatforms.includes(p)
-    )
+    const availablePlatformInfo = platformsInfo.filter((p) => !connectedPlatforms.includes(p.name))
 
-    // Renderizza la schermata di setup se necessario
-    if (setupPlatform && setupPlatform === "x" && xSetup.redirectUrl) {
+    // Renderizza la schermata di setup se necessario (per ora solo X)
+    if (setupPlatform === "x" && platformSetups.x?.redirectUrl) {
         return (
             <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
                 <div className="space-y-2">
@@ -155,7 +126,10 @@ function IntegrationsComponent() {
                     </p>
                 </div>
 
-                <XAppSetup onComplete={handleSetupComplete} redirectUrl={xSetup.redirectUrl} />
+                <XAppSetup
+                    onComplete={handleSetupComplete}
+                    redirectUrl={platformSetups.x.redirectUrl}
+                />
 
                 <Button variant="outline" onClick={() => setSetupPlatform(null)}>
                     Cancel
@@ -178,32 +152,38 @@ function IntegrationsComponent() {
                     <h2 className="mb-4 font-semibold text-lg">Connected</h2>
                     {integrations.length > 0 ? (
                         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                            {integrations.map((integration) => (
-                                <div
-                                    key={integration.id}
-                                    className="flex items-center justify-between rounded-lg border p-4"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        {platformIcons[integration.platform]}
-                                        <div>
-                                            <p className="font-semibold capitalize">
-                                                {integration.platform}
-                                            </p>
-                                            <p className="text-muted-foreground text-sm">
-                                                {integration.platformAccountName}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <Button
-                                        variant="destructive"
-                                        size="icon"
-                                        onClick={() => remove({ data: integration.id })}
-                                        disabled={isRemovePending}
+                            {integrations.map((integration) => {
+                                const platformInfo = platformsInfo.find(
+                                    (p) => p.name === integration.platform
+                                )
+                                return (
+                                    <div
+                                        key={integration.id}
+                                        className="flex items-center justify-between rounded-lg border p-4"
                                     >
-                                        <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                </div>
-                            ))}
+                                        <div className="flex items-center gap-4">
+                                            {platformIcons[integration.platform]}
+                                            <div>
+                                                <p className="font-semibold">
+                                                    {platformInfo?.displayName ||
+                                                        integration.platform}
+                                                </p>
+                                                <p className="text-muted-foreground text-sm">
+                                                    {integration.platformAccountName}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        <Button
+                                            variant="destructive"
+                                            size="icon"
+                                            onClick={() => remove({ data: integration.id })}
+                                            disabled={isRemovePending}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
+                                    </div>
+                                )
+                            })}
                         </div>
                     ) : (
                         <p className="text-muted-foreground">No integrations connected yet.</p>
@@ -213,44 +193,57 @@ function IntegrationsComponent() {
                 <div>
                     <h2 className="mb-4 font-semibold text-lg">Available</h2>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {availablePlatforms.map((platform) => {
-                            const platformInfo = platforms[platform]
-                            const setupInfo = getPlatformSetupInfo(platform)
+                        {availablePlatformInfo.map((platformInfo) => {
+                            const setupInfo = platformSetups[platformInfo.name]
+                            const isCurrentlyAuthenticating =
+                                authorizingPlatform === platformInfo.name
 
                             return (
                                 <div
-                                    key={platform}
+                                    key={platformInfo.name}
                                     className="flex flex-col gap-4 rounded-lg border p-4"
                                 >
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-4">
-                                            {platformIcons[platform]}
-                                            <p className="font-semibold capitalize">{platform}</p>
+                                            {platformIcons[platformInfo.name]}
+                                            <p className="font-semibold">
+                                                {platformInfo.displayName}
+                                            </p>
                                         </div>
-                                        {platformInfo.connect && setupInfo.canConnect ? (
-                                            <Button
-                                                onClick={() => platformInfo.connect?.()}
-                                                disabled={platformInfo.pending}
-                                            >
-                                                <PlusCircle className="mr-2 h-4 w-4" />
-                                                {platformInfo.pending
-                                                    ? "Redirecting..."
-                                                    : "Connect"}
-                                            </Button>
-                                        ) : setupInfo.requiresSetup && !setupInfo.hasCredentials ? (
-                                            <Button
-                                                variant="outline"
-                                                onClick={() => platformInfo.connect?.()}
-                                            >
-                                                <Settings className="mr-2 h-4 w-4" />
-                                                Setup
-                                            </Button>
-                                        ) : !platformInfo.connect ? (
+
+                                        {platformInfo.isImplemented ? (
+                                            setupInfo &&
+                                            platformInfo.requiresSetup &&
+                                            !setupInfo.hasCredentials ? (
+                                                <Button
+                                                    variant="outline"
+                                                    onClick={() =>
+                                                        handlePlatformConnect(platformInfo.name)
+                                                    }
+                                                >
+                                                    <Settings className="mr-2 h-4 w-4" />
+                                                    Setup
+                                                </Button>
+                                            ) : (
+                                                <Button
+                                                    onClick={() =>
+                                                        handlePlatformConnect(platformInfo.name)
+                                                    }
+                                                    disabled={isCurrentlyAuthenticating}
+                                                >
+                                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                                    {isCurrentlyAuthenticating
+                                                        ? "Redirecting..."
+                                                        : "Connect"}
+                                                </Button>
+                                            )
+                                        ) : (
                                             <p className="text-muted-foreground">Coming soon!</p>
-                                        ) : null}
+                                        )}
                                     </div>
 
-                                    {setupInfo.requiresSetup && (
+                                    {/* Informazioni di setup */}
+                                    {platformInfo.requiresSetup && setupInfo && (
                                         <div className="text-sm">
                                             {setupInfo.hasCredentials ? (
                                                 <div className="flex items-center justify-between rounded bg-green-50 px-3 py-2 dark:bg-green-950/20">
@@ -265,7 +258,7 @@ function IntegrationsComponent() {
                                                             size="sm"
                                                             onClick={() =>
                                                                 setupInfo.removeCredentials?.({
-                                                                    data: platform
+                                                                    data: platformInfo.name
                                                                 })
                                                             }
                                                             disabled={

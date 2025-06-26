@@ -19,6 +19,13 @@ export interface PostData {
     }
 }
 
+export interface PlatformInfo {
+    name: Platform
+    displayName: string
+    requiresSetup: boolean
+    isImplemented: boolean
+}
+
 export abstract class BaseSocialPlatform {
     constructor(protected name: Platform) {}
 
@@ -32,6 +39,27 @@ export abstract class BaseSocialPlatform {
         accessToken: string,
         effectiveCredentials: { clientId: string; clientSecret: string }
     ): Promise<PostResult>
+
+    getPlatformName(): Platform {
+        return this.name
+    }
+
+    getDisplayName(): string {
+        return this.name.charAt(0).toUpperCase() + this.name.slice(1)
+    }
+
+    requiresSetup(): boolean {
+        return false
+    }
+
+    isImplemented(): boolean {
+        return true
+    }
+
+    // Override per implementare l'autorizzazione specifica della piattaforma
+    async startAuthorization(userId: string): Promise<{ url: string }> {
+        throw new Error(`Authorization not implemented for ${this.name}`)
+    }
 
     async post(
         postData: PostData,

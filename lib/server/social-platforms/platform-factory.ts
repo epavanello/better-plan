@@ -1,7 +1,7 @@
 import type { Platform } from "@/database/schema/integrations"
-import { BaseSocialPlatform } from "./base-platform"
-import { XPlatform } from "./x-platform"
+import { BaseSocialPlatform, type PlatformInfo } from "./base-platform"
 import { LinkedInPlatform } from "./linkedin-platform"
+import { XPlatform } from "./x-platform"
 
 type PlatformConstructor = new () => BaseSocialPlatform
 
@@ -13,6 +13,18 @@ class NotImplementedPlatform extends BaseSocialPlatform {
 
     async postContent(): Promise<import("./base-platform").PostResult> {
         throw new Error(`${this.name} platform not yet implemented`)
+    }
+
+    isImplemented(): boolean {
+        return false
+    }
+
+    getDisplayName(): string {
+        // Capitalizza la prima lettera di ogni parola
+        return this.name
+            .split(/[-_]/)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+            .join(" ")
     }
 }
 
@@ -36,10 +48,16 @@ const PLATFORM_REGISTRY: Record<
         constructor() {
             super("tiktok")
         }
+        getDisplayName(): string {
+            return "TikTok"
+        }
     },
     youtube: class extends NotImplementedPlatform {
         constructor() {
             super("youtube")
+        }
+        getDisplayName(): string {
+            return "YouTube"
         }
     },
     facebook: class extends NotImplementedPlatform {
@@ -77,8 +95,8 @@ export class PlatformFactory {
     static getImplementedPlatforms(): Platform[] {
         return Object.keys(PLATFORM_REGISTRY).filter((platform: Platform) => {
             try {
-                PlatformFactory.getPlatform(platform)
-                return true
+                const platformInstance = PlatformFactory.getPlatform(platform)
+                return platformInstance.isImplemented()
             } catch {
                 return false
             }
@@ -87,5 +105,46 @@ export class PlatformFactory {
 
     static getAllPlatforms(): Platform[] {
         return Object.keys(PLATFORM_REGISTRY) as Platform[]
+    }
+
+    static getAllPlatformInfo(): PlatformInfo[] {
+        return PlatformFactory.getAllPlatforms().map((platform) => {
+            try {
+                const platformInstance = PlatformFactory.getPlatform(platform)
+                return {
+                    name: platform,
+                    displayName: platformInstance.getDisplayName(),
+                    requiresSetup: platformInstance.requiresSetup(),
+                    isImplemented: platformInstance.isImplemented()
+                }
+            } catch {
+                return {
+                    name: platform,
+                    displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
+                    requiresSetup: false,
+                    isImplemented: false
+                }
+            }
+        })
+    }
+
+    // Metodo per ottenere informazioni di una singola piattaforma
+    static getPlatformInfo(platform: Platform): PlatformInfo {
+        try {
+            const platformInstance = PlatformFactory.getPlatform(platform)
+            return {
+                name: platform,
+                displayName: platformInstance.getDisplayName(),
+                requiresSetup: platformInstance.requiresSetup(),
+                isImplemented: platformInstance.isImplemented()
+            }
+        } catch {
+            return {
+                name: platform,
+                displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
+                requiresSetup: false,
+                isImplemented: false
+            }
+        }
     }
 }

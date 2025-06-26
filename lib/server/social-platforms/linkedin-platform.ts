@@ -5,6 +5,19 @@ export class LinkedInPlatform extends BaseSocialPlatform {
         super("linkedin")
     }
 
+    getDisplayName(): string {
+        return "LinkedIn"
+    }
+
+    requiresSetup(): boolean {
+        return false // LinkedIn non richiede setup custom, usa OAuth 2.0 standard
+    }
+
+    async startAuthorization(userId: string): Promise<{ url: string }> {
+        // TODO: Implementare l'autorizzazione LinkedIn
+        throw new Error("LinkedIn authorization not yet implemented")
+    }
+
     async validateCredentials(
         accessToken: string,
         effectiveCredentials: { clientId: string; clientSecret: string }
