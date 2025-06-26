@@ -2,11 +2,9 @@ import { db } from "@/database/db"
 import { type InsertPost, insertPostSchema, posts } from "@/database/schema"
 import { integrations } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
-import { envConfig } from "@/lib/env"
-import { getEffectiveCredentials } from "@/lib/server/integrations"
+import { postToSocialMedia } from "@/lib/server/post-service"
 import { createServerFn } from "@tanstack/react-start"
 import { eq } from "drizzle-orm"
-import { TwitterApi } from "twitter-api-v2"
 
 export const createPost = createServerFn({ method: "POST" })
     .validator((payload: Omit<InsertPost, "userId">) =>
@@ -24,13 +22,8 @@ export const createPost = createServerFn({ method: "POST" })
             })
             .returning()
 
+        // Invia immediatamente solo se è un draft (non schedulato)
         if (post.status === "draft") {
-            const credentials = await getEffectiveCredentials("x", session.user.id)
-
-            if (!credentials) {
-                throw new Error("Credentials not found")
-            }
-
             const [integration] = await db
                 .select()
                 .from(integrations)
@@ -39,31 +32,22 @@ export const createPost = createServerFn({ method: "POST" })
             if (!integration) {
                 throw new Error("Integration not found")
             }
-            if (!integration.accessToken) {
-                throw new Error("Access token not found")
-            }
-
-            const [accessToken, accessSecret] = integration.accessToken.split(":")
-
-            const twitterClient = new TwitterApi({
-                appKey: credentials.clientId,
-                appSecret: credentials.clientSecret,
-                accessToken: accessToken,
-                accessSecret: accessSecret
-            })
 
             try {
-                const tweet = await twitterClient.v2.tweet(post.content)
-                await db
-                    .update(posts)
-                    .set({
-                        status: "posted",
-                        postedAt: new Date(),
-                        postUrl: `https://x.com/${integration.platformAccountName}/status/${tweet.data.id}`
-                    })
-                    .where(eq(posts.id, post.id))
+                await postToSocialMedia({
+                    id: post.id,
+                    content: post.content,
+                    userId: post.userId,
+                    integration: {
+                        id: integration.id,
+                        platform: integration.platform,
+                        platformAccountId: integration.platformAccountId,
+                        platformAccountName: integration.platformAccountName,
+                        accessToken: integration.accessToken
+                    }
+                })
             } catch (error) {
-                console.error("Failed to post to X", error)
+                console.error("Failed to post immediately", error)
                 await db
                     .update(posts)
                     .set({
@@ -71,7 +55,7 @@ export const createPost = createServerFn({ method: "POST" })
                         failReason: error instanceof Error ? error.message : "Unknown error"
                     })
                     .where(eq(posts.id, post.id))
-                throw new Error("Failed to post to X")
+                throw new Error("Failed to post to social media")
             }
         }
 

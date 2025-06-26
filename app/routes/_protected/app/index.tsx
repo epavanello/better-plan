@@ -1,5 +1,6 @@
 import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 import {
     Select,
     SelectContent,
@@ -14,7 +15,7 @@ import { createPost, getPosts } from "@/functions/posts"
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { formatRelative } from "date-fns"
-import { ExternalLink, Rocket, X } from "lucide-react"
+import { CalendarClock, ExternalLink, Rocket, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -31,11 +32,15 @@ function RouteComponent() {
     const router = useRouter()
     const [content, setContent] = useState("")
     const [integrationId, setIntegrationId] = useState<string | undefined>()
+    const [isScheduled, setIsScheduled] = useState(false)
+    const [scheduledDateTime, setScheduledDateTime] = useState("")
 
     const { mutate: create, isPending } = useMutation({
         mutationFn: createPost,
         onSuccess: () => {
-            toast.success("Post created successfully!")
+            toast.success(
+                isScheduled ? "Post scheduled successfully!" : "Post created successfully!"
+            )
             handleClear()
             router.invalidate()
         },
@@ -47,6 +52,8 @@ function RouteComponent() {
     const handleClear = () => {
         setContent("")
         setIntegrationId(undefined)
+        setIsScheduled(false)
+        setScheduledDateTime("")
     }
 
     const handleSubmit = () => {
@@ -58,12 +65,32 @@ function RouteComponent() {
             toast.error("Please enter some content.")
             return
         }
+        if (isScheduled) {
+            if (!scheduledDateTime) {
+                toast.error("Please select a date and time for scheduling.")
+                return
+            }
+            const scheduledDate = new Date(scheduledDateTime)
+            if (scheduledDate <= new Date()) {
+                toast.error("Scheduled time must be in the future.")
+                return
+            }
+        }
+
         create({
             data: {
                 integrationId,
-                content
+                content,
+                scheduledAt: isScheduled ? new Date(scheduledDateTime) : undefined
             }
         })
+    }
+
+    // Calcola il minimo datetime (ora corrente + 5 minuti)
+    const getMinDateTime = () => {
+        const now = new Date()
+        now.setMinutes(now.getMinutes() + 5)
+        return now.toISOString().slice(0, 16)
     }
 
     return (
@@ -104,14 +131,66 @@ function RouteComponent() {
                         onChange={(e) => setContent(e.target.value)}
                         rows={6}
                     />
+
+                    {/* Sezione scheduling */}
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-4">
+                            <Button
+                                type="button"
+                                variant={!isScheduled ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setIsScheduled(false)}
+                                disabled={isPending}
+                            >
+                                <Rocket className="mr-2 h-4 w-4" />
+                                Immediate
+                            </Button>
+                            <Button
+                                type="button"
+                                variant={isScheduled ? "default" : "outline"}
+                                size="sm"
+                                onClick={() => setIsScheduled(true)}
+                                disabled={isPending}
+                            >
+                                <CalendarClock className="mr-2 h-4 w-4" />
+                                Schedule
+                            </Button>
+                        </div>
+
+                        {isScheduled && (
+                            <div className="space-y-2">
+                                <label htmlFor="scheduled-time" className="text-sm font-medium">
+                                    Schedule for:
+                                </label>
+                                <Input
+                                    id="scheduled-time"
+                                    type="datetime-local"
+                                    value={scheduledDateTime}
+                                    onChange={(e) => setScheduledDateTime(e.target.value)}
+                                    min={getMinDateTime()}
+                                    disabled={isPending}
+                                />
+                            </div>
+                        )}
+                    </div>
+
                     <div className="flex justify-end gap-2">
                         <Button variant="ghost" onClick={handleClear} disabled={isPending}>
                             <X className="mr-2 h-4 w-4" />
                             Clear
                         </Button>
                         <Button onClick={handleSubmit} disabled={isPending}>
-                            <Rocket className="mr-2 h-4 w-4" />
-                            {isPending ? "Posting..." : "Post"}
+                            {isScheduled ? (
+                                <>
+                                    <CalendarClock className="mr-2 h-4 w-4" />
+                                    {isPending ? "Scheduling..." : "Schedule Post"}
+                                </>
+                            ) : (
+                                <>
+                                    <Rocket className="mr-2 h-4 w-4" />
+                                    {isPending ? "Publishing..." : "Publish Now"}
+                                </>
+                            )}
                         </Button>
                     </div>
                 </div>
@@ -129,6 +208,16 @@ function RouteComponent() {
                                             {post.integration.platformAccountName}
                                             {" - "}
                                             <span className="capitalize">{post.status}</span>
+                                            {post.status === "scheduled" && post.scheduledAt && (
+                                                <span className="text-blue-600">
+                                                    (scheduled for{" "}
+                                                    {formatRelative(
+                                                        new Date(post.scheduledAt),
+                                                        new Date()
+                                                    )}
+                                                    )
+                                                </span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <time

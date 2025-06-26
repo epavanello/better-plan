@@ -1,6 +1,6 @@
 import { users } from "@/auth-schema"
 import { relations } from "drizzle-orm"
-import { pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core"
+import { integer, pgEnum, pgTable, text, timestamp, varchar } from "drizzle-orm/pg-core"
 import { createInsertSchema } from "drizzle-zod"
 import { ulid } from "ulid"
 import { integrations } from "./integrations"
@@ -16,7 +16,7 @@ export const posts = pgTable("posts", {
     scheduledAt: timestamp("scheduled_at"),
     postedAt: timestamp("posted_at"),
     postUrl: text("post_url"),
-    failCount: text("fail_count").default("0"),
+    failCount: integer("fail_count").default(0),
     failReason: text("fail_reason"),
     integrationId: text("integration_id")
         .notNull()

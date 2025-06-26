@@ -50,6 +50,11 @@
                         "functions": ["cn"]
                     }
                 }
+            },
+            "complexity": {
+                "noStaticOnlyClass": {
+                    "level": "off"
+                }
             }
         }
     },
