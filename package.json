@@ -15,7 +15,11 @@
         "db:studio": "drizzle-kit studio",
         "docker:build": "docker compose build",
         "docker:up": "docker compose up -d",
-        "docker:down": "docker compose down"
+        "docker:down": "docker compose down",
+        "release:patch": "npm version patch && git push && git push --tags",
+        "release:minor": "npm version minor && git push && git push --tags",
+        "release:major": "npm version major && git push && git push --tags",
+        "docker:push": "docker buildx build --platform linux/amd64,linux/arm64 -t ghcr.io/$(echo $GITHUB_REPOSITORY | tr '[:upper:]' '[:lower:]'):latest --push ."
     },
     "keywords": [],
     "author": "emadev",
