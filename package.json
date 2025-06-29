@@ -5,7 +5,7 @@
     "scripts": {
         "dev": "vite dev",
         "build": "vite build && tsc --noEmit",
-        "start": "vite start",
+        "start": "dotenv -e .env -- vite start",
         "lint": "biome check",
         "lint:fix": "biome check --write",
         "check-types": "tsc --noEmit",
