@@ -39,7 +39,7 @@ export class XPlatform extends BaseSocialPlatform {
             appSecret: credentials.clientSecret
         })
 
-        const callbackUrl = `${envConfig.APP_URL}/api/auth/x/callback`
+        const callbackUrl = `${envConfig.APP_URL}/api/integrations/x/callback`
 
         const { url, oauth_token, oauth_token_secret } = await client.generateAuthLink(
             callbackUrl,

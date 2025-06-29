@@ -59,7 +59,7 @@ export const validatePlatformCredentials = async (
                     appSecret: clientSecret
                 })
 
-                const callbackUrl = `${envConfig.APP_URL}/api/auth/x/callback`
+                const callbackUrl = `${envConfig.APP_URL}/api/integrations/x/callback`
                 await client.generateAuthLink(callbackUrl, {
                     authAccessType: "write",
                     linkMode: "authenticate"
@@ -88,7 +88,7 @@ export const getPlatformCredentialsInfo = async (platform: Platform) => {
             return {
                 requiresUserCredentials: !hasSystemCredentials,
                 hasSystemCredentials,
-                redirectUrl: `${envConfig.APP_URL}/api/auth/x/callback`
+                redirectUrl: `${envConfig.APP_URL}/api/integrations/x/callback`
             }
         default:
             return {

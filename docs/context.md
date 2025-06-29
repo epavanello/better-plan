@@ -24,7 +24,7 @@ The authentication flow uses **OAuth 1.0a**, providing non-expiring tokens. The 
 - **Client-side Handling**: The `onSuccess` callback of `useMutation` manually sets the cookie on the browser and redirects the user to the auth URL provided by the server function.
 
 **Step 2: Handling the Callback**
-- **Endpoint**: A dedicated API route at `app/routes/api/auth/x/callback.ts`.
+- **Endpoint**: A dedicated API route at `app/routes/api/integrations/x/callback.ts`.
 - **Logic**:
     1. Receives the redirect from X with `oauth_token` and `oauth_verifier` in the URL query.
     2. Reads the temporary tokens from the `x_oauth_token` cookie to validate the request's origin.
