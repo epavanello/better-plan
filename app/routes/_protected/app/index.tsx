@@ -2,7 +2,7 @@ import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
     Select,
     SelectContent,
@@ -12,12 +12,13 @@ import {
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { getIntegrations } from "@/functions/integrations"
-import { createPost, getPosts } from "@/functions/posts"
+import { createPost, deletePost, getPosts } from "@/functions/posts"
+import { PopoverClose } from "@radix-ui/react-popover"
 import { useMutation } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
 import { formatRelative } from "date-fns"
-import { CalendarClock, ExternalLink, Rocket, X } from "lucide-react"
-import { useState } from "react"
+import { CalendarClock, ExternalLink, Rocket, X, Trash2 } from "lucide-react"
+import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_protected/app/")({
@@ -33,18 +34,32 @@ function RouteComponent() {
     const router = useRouter()
     const [content, setContent] = useState("")
     const [integrationId, setIntegrationId] = useState<string | undefined>()
-    const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">("immediate")
     const [scheduledDateTime, setScheduledDateTime] = useState("")
+    const [isPublishPopoverOpen, setIsPublishPopoverOpen] = useState(false)
+    const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false)
+    const currentIntegration = useMemo(
+        () => integrations.find((i) => i.id === integrationId),
+        [integrations, integrationId]
+    )
 
     const { mutate: create, isPending } = useMutation({
         mutationFn: createPost,
         onSuccess: () => {
             toast.success(
-                publishMode === "scheduled"
-                    ? "Post scheduled successfully!"
-                    : "Post created successfully!"
+                scheduledDateTime ? "Post scheduled successfully!" : "Post published successfully!"
             )
             handleClear()
+            router.invalidate()
+        },
+        onError: (error) => {
+            toast.error(error.message)
+        }
+    })
+
+    const { mutate: deleteMutate } = useMutation({
+        mutationFn: deletePost,
+        onSuccess: () => {
+            toast.success("Post deleted successfully!")
             router.invalidate()
         },
         onError: (error) => {
@@ -55,11 +70,12 @@ function RouteComponent() {
     const handleClear = () => {
         setContent("")
         setIntegrationId(undefined)
-        setPublishMode("immediate")
         setScheduledDateTime("")
+        setIsPublishPopoverOpen(false)
+        setIsSchedulePopoverOpen(false)
     }
 
-    const handleSubmit = () => {
+    const handlePublishNow = () => {
         if (!integrationId) {
             toast.error("Please select a platform.")
             return
@@ -68,33 +84,54 @@ function RouteComponent() {
             toast.error("Please enter some content.")
             return
         }
-        if (publishMode === "scheduled") {
-            if (!scheduledDateTime) {
-                toast.error("Please select a date and time for scheduling.")
-                return
+
+        create({
+            data: {
+                integrationId,
+                content,
+                scheduledAt: undefined
             }
-            const scheduledDate = new Date(scheduledDateTime)
-            if (scheduledDate <= new Date()) {
-                toast.error("Scheduled time must be in the future.")
-                return
-            }
+        })
+        setIsPublishPopoverOpen(false)
+    }
+
+    const handleSchedulePost = () => {
+        if (!integrationId) {
+            toast.error("Please select a platform.")
+            return
+        }
+        if (!content) {
+            toast.error("Please enter some content.")
+            return
+        }
+        if (!scheduledDateTime) {
+            toast.error("Please select a date and time for scheduling.")
+            return
+        }
+        const scheduledDate = new Date(scheduledDateTime)
+        if (scheduledDate <= new Date()) {
+            toast.error("Scheduled time must be in the future.")
+            return
         }
 
         create({
             data: {
                 integrationId,
                 content,
-                scheduledAt: publishMode === "scheduled" ? new Date(scheduledDateTime) : undefined
+                scheduledAt: scheduledDate
             }
         })
+        setIsSchedulePopoverOpen(false)
     }
 
-    // Calcola il minimo datetime (ora corrente + 5 minuti)
+    // Calculate minimum datetime (current time + 5 minutes)
     const getMinDateTime = () => {
         const now = new Date()
         now.setMinutes(now.getMinutes() + 5)
         return now.toISOString().slice(0, 16)
     }
+
+    const canSubmit = integrationId && content && !isPending
 
     return (
         <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
@@ -135,63 +172,96 @@ function RouteComponent() {
                         rows={6}
                     />
 
-                    {/* Sezione scheduling */}
-                    <div className="space-y-3">
-                        <div className="space-y-3">
-                            <Label>Publishing option:</Label>
-                            <RadioGroup
-                                value={publishMode}
-                                onValueChange={(value) =>
-                                    setPublishMode(value as "immediate" | "scheduled")
-                                }
-                                disabled={isPending}
-                            >
-                                <div className="flex items-center gap-2">
-                                    <RadioGroupItem value="immediate" id="immediate" />
-                                    <Label htmlFor="immediate">Publish Now</Label>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <RadioGroupItem value="scheduled" id="scheduled" />
-                                    <Label htmlFor="scheduled">Schedule</Label>
-                                </div>
-                            </RadioGroup>
-                        </div>
-
-                        {publishMode === "scheduled" && (
-                            <div className="space-y-2">
-                                <label htmlFor="scheduled-time" className="font-medium text-sm">
-                                    Schedule for:
-                                </label>
-                                <Input
-                                    id="scheduled-time"
-                                    type="datetime-local"
-                                    value={scheduledDateTime}
-                                    onChange={(e) => setScheduledDateTime(e.target.value)}
-                                    min={getMinDateTime()}
-                                    disabled={isPending}
-                                />
-                            </div>
-                        )}
-                    </div>
-
                     <div className="flex justify-end gap-2">
                         <Button variant="ghost" onClick={handleClear} disabled={isPending}>
-                            <X className="mr-2 h-4 w-4" />
+                            <X />
                             Clear
                         </Button>
-                        <Button onClick={handleSubmit} disabled={isPending}>
-                            {publishMode === "scheduled" ? (
-                                <>
-                                    <CalendarClock className="mr-2 h-4 w-4" />
-                                    {isPending ? "Scheduling..." : "Schedule Post"}
-                                </>
-                            ) : (
-                                <>
-                                    <Rocket className="mr-2 h-4 w-4" />
-                                    {isPending ? "Publishing..." : "Publish Now"}
-                                </>
-                            )}
-                        </Button>
+
+                        {/* Publish Now Popover */}
+                        <Popover open={isPublishPopoverOpen} onOpenChange={setIsPublishPopoverOpen}>
+                            <PopoverTrigger asChild>
+                                <Button disabled={!canSubmit}>
+                                    <Rocket />
+                                    Post Now
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80" side="bottom">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <h3 className="font-medium text-lg">Publish Post</h3>
+                                        <p className="text-muted-foreground text-sm">
+                                            Your post will be published immediately to{" "}
+                                            {currentIntegration?.platformAccountName}.
+                                        </p>
+                                    </div>
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => setIsPublishPopoverOpen(false)}
+                                            disabled={isPending}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button onClick={handlePublishNow} disabled={isPending}>
+                                            {isPending ? "Publishing..." : "Publish Now"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
+
+                        {/* Schedule Popover */}
+                        <Popover
+                            open={isSchedulePopoverOpen}
+                            onOpenChange={setIsSchedulePopoverOpen}
+                        >
+                            <PopoverTrigger asChild>
+                                <Button variant="outline" disabled={!canSubmit}>
+                                    <CalendarClock />
+                                    Schedule
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-80">
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <h3 className="font-medium text-lg">Schedule Post</h3>
+                                        <p className="text-muted-foreground text-sm">
+                                            Choose when to publish your post to{" "}
+                                            {currentIntegration?.platformAccountName}.
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <Label htmlFor="schedule-time">Schedule for:</Label>
+                                        <Input
+                                            id="schedule-time"
+                                            type="datetime-local"
+                                            value={scheduledDateTime}
+                                            onChange={(e) => setScheduledDateTime(e.target.value)}
+                                            min={getMinDateTime()}
+                                            disabled={isPending}
+                                        />
+                                    </div>
+
+                                    <div className="flex justify-end gap-2">
+                                        <Button
+                                            variant="ghost"
+                                            onClick={() => setIsSchedulePopoverOpen(false)}
+                                            disabled={isPending}
+                                        >
+                                            Cancel
+                                        </Button>
+                                        <Button
+                                            onClick={handleSchedulePost}
+                                            disabled={isPending || !scheduledDateTime}
+                                        >
+                                            {isPending ? "Scheduling..." : "Schedule Post"}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
             </div>
@@ -238,6 +308,47 @@ function RouteComponent() {
                                                 >
                                                     <ExternalLink className="h-4 w-4" />
                                                 </a>
+                                            )}
+                                            {post.status === "scheduled" && (
+                                                <Popover>
+                                                    <PopoverTrigger asChild>
+                                                        <Button variant="ghost" size="icon">
+                                                            <Trash2 />
+                                                        </Button>
+                                                    </PopoverTrigger>
+                                                    <PopoverContent className="w-64" side="bottom">
+                                                        <div className="space-y-2">
+                                                            <h4 className="font-medium text-sm">
+                                                                Delete Post
+                                                            </h4>
+                                                            <p className="text-muted-foreground text-xs">
+                                                                Are you sure you want to delete this
+                                                                scheduled post?
+                                                            </p>
+                                                            <div className="flex justify-end gap-2">
+                                                                <PopoverClose asChild>
+                                                                    <Button
+                                                                        variant="ghost"
+                                                                        size="sm"
+                                                                    >
+                                                                        Cancel
+                                                                    </Button>
+                                                                </PopoverClose>
+                                                                <Button
+                                                                    variant="destructive"
+                                                                    size="sm"
+                                                                    onClick={() =>
+                                                                        deleteMutate({
+                                                                            data: { id: post.id }
+                                                                        })
+                                                                    }
+                                                                >
+                                                                    Delete
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    </PopoverContent>
+                                                </Popover>
                                             )}
                                         </div>
                                     </div>

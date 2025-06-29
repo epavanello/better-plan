@@ -4,7 +4,8 @@ import { integrations } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { postToSocialMedia } from "@/lib/server/post-service"
 import { createServerFn } from "@tanstack/react-start"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
+import { z } from "zod"
 
 export const createPost = createServerFn({ method: "POST" })
     .validator((payload: Omit<InsertPost, "userId">) =>
@@ -86,3 +87,22 @@ export const getPosts = createServerFn({ method: "GET" }).handler(async () => {
 
     return result
 })
+
+export const deletePost = createServerFn({ method: "POST" })
+    .validator((payload: { id: string }) => {
+        return z.object({ id: z.string() }).parse(payload)
+    })
+    .handler(async ({ data }) => {
+        const session = await getSessionOrThrow()
+
+        const [deletedPost] = await db
+            .delete(posts)
+            .where(and(eq(posts.id, data.id), eq(posts.userId, session.user.id)))
+            .returning()
+
+        if (!deletedPost) {
+            throw new Error("Post not found or not authorized to delete")
+        }
+
+        return deletedPost
+    })
