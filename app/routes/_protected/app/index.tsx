@@ -1,6 +1,8 @@
 import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import {
     Select,
     SelectContent,
@@ -9,7 +11,6 @@ import {
     SelectValue
 } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import type { Platform } from "@/database/schema/integrations"
 import { getIntegrations } from "@/functions/integrations"
 import { createPost, getPosts } from "@/functions/posts"
 import { useMutation } from "@tanstack/react-query"
@@ -32,14 +33,16 @@ function RouteComponent() {
     const router = useRouter()
     const [content, setContent] = useState("")
     const [integrationId, setIntegrationId] = useState<string | undefined>()
-    const [isScheduled, setIsScheduled] = useState(false)
+    const [publishMode, setPublishMode] = useState<"immediate" | "scheduled">("immediate")
     const [scheduledDateTime, setScheduledDateTime] = useState("")
 
     const { mutate: create, isPending } = useMutation({
         mutationFn: createPost,
         onSuccess: () => {
             toast.success(
-                isScheduled ? "Post scheduled successfully!" : "Post created successfully!"
+                publishMode === "scheduled"
+                    ? "Post scheduled successfully!"
+                    : "Post created successfully!"
             )
             handleClear()
             router.invalidate()
@@ -52,7 +55,7 @@ function RouteComponent() {
     const handleClear = () => {
         setContent("")
         setIntegrationId(undefined)
-        setIsScheduled(false)
+        setPublishMode("immediate")
         setScheduledDateTime("")
     }
 
@@ -65,7 +68,7 @@ function RouteComponent() {
             toast.error("Please enter some content.")
             return
         }
-        if (isScheduled) {
+        if (publishMode === "scheduled") {
             if (!scheduledDateTime) {
                 toast.error("Please select a date and time for scheduling.")
                 return
@@ -81,7 +84,7 @@ function RouteComponent() {
             data: {
                 integrationId,
                 content,
-                scheduledAt: isScheduled ? new Date(scheduledDateTime) : undefined
+                scheduledAt: publishMode === "scheduled" ? new Date(scheduledDateTime) : undefined
             }
         })
     }
@@ -134,32 +137,29 @@ function RouteComponent() {
 
                     {/* Sezione scheduling */}
                     <div className="space-y-3">
-                        <div className="flex items-center gap-4">
-                            <Button
-                                type="button"
-                                variant={!isScheduled ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setIsScheduled(false)}
+                        <div className="space-y-3">
+                            <Label>Publishing option:</Label>
+                            <RadioGroup
+                                value={publishMode}
+                                onValueChange={(value) =>
+                                    setPublishMode(value as "immediate" | "scheduled")
+                                }
                                 disabled={isPending}
                             >
-                                <Rocket className="mr-2 h-4 w-4" />
-                                Immediate
-                            </Button>
-                            <Button
-                                type="button"
-                                variant={isScheduled ? "default" : "outline"}
-                                size="sm"
-                                onClick={() => setIsScheduled(true)}
-                                disabled={isPending}
-                            >
-                                <CalendarClock className="mr-2 h-4 w-4" />
-                                Schedule
-                            </Button>
+                                <div className="flex items-center gap-2">
+                                    <RadioGroupItem value="immediate" id="immediate" />
+                                    <Label htmlFor="immediate">Publish Now</Label>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <RadioGroupItem value="scheduled" id="scheduled" />
+                                    <Label htmlFor="scheduled">Schedule</Label>
+                                </div>
+                            </RadioGroup>
                         </div>
 
-                        {isScheduled && (
+                        {publishMode === "scheduled" && (
                             <div className="space-y-2">
-                                <label htmlFor="scheduled-time" className="text-sm font-medium">
+                                <label htmlFor="scheduled-time" className="font-medium text-sm">
                                     Schedule for:
                                 </label>
                                 <Input
@@ -180,7 +180,7 @@ function RouteComponent() {
                             Clear
                         </Button>
                         <Button onClick={handleSubmit} disabled={isPending}>
-                            {isScheduled ? (
+                            {publishMode === "scheduled" ? (
                                 <>
                                     <CalendarClock className="mr-2 h-4 w-4" />
                                     {isPending ? "Scheduling..." : "Schedule Post"}

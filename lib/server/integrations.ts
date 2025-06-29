@@ -1,7 +1,7 @@
-import { type Platform, userAppCredentials } from "@/database/schema"
-import { envConfig } from "../env"
 import { db } from "@/database/db"
+import { type Platform, userAppCredentials } from "@/database/schema"
 import { and, eq } from "drizzle-orm"
+import { envConfig } from "../env"
 
 export const getSystemCredentials = async (platform: Platform) => {
     switch (platform) {

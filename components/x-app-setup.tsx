@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { saveUserAppCredentials } from "@/functions/integrations"
 import { useMutation } from "@tanstack/react-query"
-import { ExternalLink, Info, AlertCircle } from "lucide-react"
+import { AlertCircle, ExternalLink, Info } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
