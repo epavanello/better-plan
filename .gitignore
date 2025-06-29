@@ -25,3 +25,5 @@ yarn.lock
 .turbo
 routeTree.gen.ts
 .cursor/
+.tanstack/
+.nitro/

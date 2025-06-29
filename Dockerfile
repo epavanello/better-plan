@@ -14,7 +14,7 @@ RUN pnpm install --frozen-lockfile
 COPY . .
 
 # Ensure the migrations directory exists, even if no migrations have been generated yet
-RUN mkdir -p database/migrations
+RUN mkdir -p migrations
 
 # Set NODE_ENV to production for consistent builds
 ENV NODE_ENV=production
@@ -40,7 +40,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/.output ./.output
 
 # Copy migration scripts
-COPY --from=build /app/database/migrations ./database/migrations
+COPY --from=build /app/migrations ./migrations
 
 # Expose the port the app runs on
 EXPOSE 3000
