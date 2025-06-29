@@ -113,7 +113,6 @@ function IntegrationsComponent() {
     }
 
     const connectedPlatforms = integrations.map((i) => i.platform)
-    const availablePlatformInfo = platformsInfo.filter((p) => !connectedPlatforms.includes(p.name))
 
     // Renderizza la schermata di setup se necessario (per ora solo X)
     if (setupPlatform === "x" && platformSetups.x?.redirectUrl) {
@@ -193,7 +192,7 @@ function IntegrationsComponent() {
                 <div>
                     <h2 className="mb-4 font-semibold text-lg">Available</h2>
                     <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                        {availablePlatformInfo.map((platformInfo) => {
+                        {platformsInfo.map((platformInfo) => {
                             const setupInfo = platformSetups[platformInfo.name]
                             const isCurrentlyAuthenticating =
                                 authorizingPlatform === platformInfo.name
