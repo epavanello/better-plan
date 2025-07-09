@@ -6,7 +6,7 @@ import { ulid } from "ulid"
 import { integrations } from "./integrations"
 
 export const POST_STATUS_VALUES = ["draft", "scheduled", "posted", "failed"] as const
-export const POST_SOURCE_VALUES = ["native", "imported"] as const
+export const POST_SOURCE_VALUES = ["native", "imported", "ai-generated"] as const
 
 export type PostStatus = (typeof POST_STATUS_VALUES)[number]
 export type PostSource = (typeof POST_SOURCE_VALUES)[number]
@@ -23,6 +23,12 @@ export const posts = sqliteTable("posts", {
   postUrl: text("post_url"),
   failCount: integer("fail_count").default(0),
   failReason: text("fail_reason"),
+
+  // AI-related fields
+  aiGenerated: integer("ai_generated", { mode: "boolean" }).default(false),
+  aiPrompt: text("ai_prompt"), // Store the original prompt used for generation
+  aiModel: text("ai_model"), // Store which AI model was used
+
   integrationId: text("integration_id")
     .notNull()
     .references(() => integrations.id, { onDelete: "cascade" }),

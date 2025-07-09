@@ -13,7 +13,16 @@ const envSchema = z.object({
     .optional(),
   DATABASE_URL: z.string(),
   DATABASE_AUTH_TOKEN: z.string(),
-  DATABASE_DIALECT: z.union([z.literal("turso"), z.literal("sqlite")]).default("turso")
+  DATABASE_DIALECT: z.union([z.literal("turso"), z.literal("sqlite")]).default("turso"),
+
+  // AI Configuration
+  OPENAI_API_KEY: z.string().optional(),
+  DEPLOYMENT_TYPE: z.enum(["self-hosted", "saas"]).default("self-hosted"),
+
+  // AI Limits for SaaS (only used when DEPLOYMENT_TYPE is "saas")
+  AI_MAX_CONTEXT_WINDOW: z.coerce.number().default(4000),
+  AI_MAX_GENERATIONS_PER_MONTH: z.coerce.number().default(50),
+  AI_MODEL: z.string().default("gpt-4o-mini")
 })
 
 export type EnvConfig = z.infer<typeof envSchema>
@@ -41,3 +50,23 @@ try {
 }
 
 export { envConfig }
+
+// Helper functions for AI configuration
+export const isAiEnabled = () => {
+  return Boolean(envConfig.OPENAI_API_KEY)
+}
+
+export const isSaasDeployment = () => {
+  return envConfig.DEPLOYMENT_TYPE === "saas"
+}
+
+export const getAiConfig = () => {
+  return {
+    apiKey: envConfig.OPENAI_API_KEY,
+    model: envConfig.AI_MODEL,
+    maxContextWindow: envConfig.AI_MAX_CONTEXT_WINDOW,
+    maxGenerationsPerMonth: envConfig.AI_MAX_GENERATIONS_PER_MONTH,
+    isEnabled: isAiEnabled(),
+    isSaas: isSaasDeployment()
+  }
+}

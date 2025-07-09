@@ -24,6 +24,12 @@ services:
     - X_CLIENT_SECRET=${X_CLIENT_SECRET}
     - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-secret-key-change-in-production}
     - DISABLE_SIGNUP=${DISABLE_SIGNUP:-false}
+    # --- AI Configuration
+    - OPENAI_API_KEY=${OPENAI_API_KEY}
+    - DEPLOYMENT_TYPE=${DEPLOYMENT_TYPE:-self-hosted}
+    - AI_MAX_CONTEXT_WINDOW=${AI_MAX_CONTEXT_WINDOW:-4000}
+    - AI_MAX_GENERATIONS_PER_MONTH=${AI_MAX_GENERATIONS_PER_MONTH:-50}
+    - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
     volumes:
     # --- Persistent volume for development SQLite database
     - sqlite_data_dev:/app/data
