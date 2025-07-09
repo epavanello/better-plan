@@ -3,12 +3,11 @@
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 
+import { Footer } from "@/components/footer"
 import { Header } from "@/components/header"
 import { getServerSession } from "@/functions/session"
 import { Providers } from "../providers"
 import globalsCss from "../styles/globals.css?url"
-import { GitHubIcon, XIcon } from "@daveyplate/better-auth-ui"
-import { Footer } from "@/components/footer"
 
 export const Route = createRootRoute({
   head: () => ({

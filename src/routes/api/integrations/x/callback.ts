@@ -53,7 +53,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/x/callback")
       .from(integrations)
       .where(
         eq(integrations.userId, session.user.id) &&
-        eq(integrations.platformAccountId, platformAccountId)
+          eq(integrations.platformAccountId, platformAccountId)
       )
       .limit(1)
 

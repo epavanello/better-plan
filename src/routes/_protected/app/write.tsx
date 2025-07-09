@@ -1,9 +1,7 @@
+import { CreatePostForm } from "@/components/create-post-form"
 import { platformIcons } from "@/components/platform-icons"
 import { PostsList } from "@/components/posts-list"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import {
   Select,
   SelectContent,
@@ -11,12 +9,11 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { getIntegrations } from "@/functions/integrations"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { CalendarClock, Download, Rocket, X } from "lucide-react"
+import { Download } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -30,11 +27,7 @@ export const Route = createFileRoute("/_protected/app/write")({
 
 function RouteComponent() {
   const { integrations } = Route.useLoaderData()
-  const [content, setContent] = useState("")
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>()
-  const [scheduledDateTime, setScheduledDateTime] = useState("")
-  const [isPublishPopoverOpen, setIsPublishPopoverOpen] = useState(false)
-  const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false)
 
   const {
     data: posts = [],
@@ -56,10 +49,8 @@ function RouteComponent() {
 
   const { mutate: create, isPending } = useMutation({
     mutationFn: createPost,
-    onSuccess: () => {
-      toast.success(
-        scheduledDateTime ? "Post scheduled successfully!" : "Post published successfully!"
-      )
+    onSuccess: (_, { data: { scheduledAt } }) => {
+      toast.success(scheduledAt ? "Post scheduled successfully!" : "Post published successfully!")
       handleClear()
       refetchPosts()
     },
@@ -90,13 +81,6 @@ function RouteComponent() {
     }
   })
 
-  const handleClear = () => {
-    setContent("")
-    setScheduledDateTime("")
-    setIsPublishPopoverOpen(false)
-    setIsSchedulePopoverOpen(false)
-  }
-
   const handleFetchRecent = () => {
     if (!selectedIntegrationId) {
       toast.error("Please select a platform to import posts from.")
@@ -105,63 +89,27 @@ function RouteComponent() {
     fetchRecent({ data: { integrationId: selectedIntegrationId } })
   }
 
-  const handlePublishNow = () => {
-    if (!selectedIntegrationId) {
-      toast.error("Please select a platform.")
-      return
-    }
-    if (!content) {
-      toast.error("Please enter some content.")
-      return
-    }
-
+  const handleCreatePost = (data: {
+    integrationId: string
+    content: string
+    scheduledAt?: Date
+  }) => {
     create({
       data: {
-        integrationId: selectedIntegrationId,
-        content,
-        scheduledAt: undefined
+        integrationId: data.integrationId,
+        content: data.content,
+        scheduledAt: data.scheduledAt
       }
     })
-    setIsPublishPopoverOpen(false)
   }
 
-  const handleSchedulePost = () => {
-    if (!selectedIntegrationId) {
-      toast.error("Please select a platform.")
-      return
-    }
-    if (!content) {
-      toast.error("Please enter some content.")
-      return
-    }
-    if (!scheduledDateTime) {
-      toast.error("Please select a date and time for scheduling.")
-      return
-    }
-    const scheduledDate = new Date(scheduledDateTime)
-    if (scheduledDate <= new Date()) {
-      toast.error("Scheduled time must be in the future.")
-      return
-    }
-
-    create({
-      data: {
-        integrationId: selectedIntegrationId,
-        content,
-        scheduledAt: scheduledDate
-      }
-    })
-    setIsSchedulePopoverOpen(false)
+  const handleClear = () => {
+    // This will be handled by the CreatePostForm component
   }
 
-  // Calculate minimum datetime (current time + 5 minutes)
-  const getMinDateTime = () => {
-    const now = new Date()
-    now.setMinutes(now.getMinutes() + 5)
-    return now.toISOString().slice(0, 16)
+  const handleValidationError = (message: string) => {
+    toast.error(message)
   }
-
-  const canSubmit = selectedIntegrationId && content && !isPending
 
   return (
     <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
@@ -195,98 +143,14 @@ function RouteComponent() {
 
       {selectedIntegrationId && (
         <>
-          <div className="w-full rounded-lg border p-4">
-            <h2 className="mb-4 font-semibold text-lg">Create a new post</h2>
-            <div className="grid gap-4">
-              <Textarea
-                placeholder="What's on your mind?"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-              />
-              <div className="flex justify-end gap-2">
-                <Button variant="ghost" onClick={handleClear} disabled={isPending}>
-                  <X />
-                  Clear
-                </Button>
-                <Popover open={isPublishPopoverOpen} onOpenChange={setIsPublishPopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button disabled={!canSubmit}>
-                      <Rocket />
-                      Post Now
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80" side="bottom">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium text-lg">Publish Post</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Your post will be published immediately to{" "}
-                          {currentIntegration?.platformAccountName}.
-                        </p>
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => setIsPublishPopoverOpen(false)}
-                          disabled={isPending}
-                        >
-                          Cancel
-                        </Button>
-                        <Button onClick={handlePublishNow} disabled={isPending}>
-                          {isPending ? "Publishing..." : "Publish Now"}
-                        </Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-                <Popover open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" disabled={!canSubmit}>
-                      <CalendarClock />
-                      Schedule
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80">
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium text-lg">Schedule Post</h3>
-                        <p className="text-muted-foreground text-sm">
-                          Choose when to publish your post to{" "}
-                          {currentIntegration?.platformAccountName}.
-                        </p>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="schedule-time">Schedule for:</Label>
-                        <Input
-                          id="schedule-time"
-                          type="datetime-local"
-                          value={scheduledDateTime}
-                          onChange={(e) => setScheduledDateTime(e.target.value)}
-                          min={getMinDateTime()}
-                          disabled={isPending}
-                        />
-                      </div>
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          onClick={() => setIsSchedulePopoverOpen(false)}
-                          disabled={isPending}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          onClick={handleSchedulePost}
-                          disabled={isPending || !scheduledDateTime}
-                        >
-                          {isPending ? "Scheduling..." : "Schedule Post"}
-                        </Button>
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              </div>
-            </div>
-          </div>
+          <CreatePostForm
+            selectedIntegrationId={selectedIntegrationId}
+            currentIntegrationName={currentIntegration?.platformAccountName}
+            isPending={isPending}
+            onCreatePost={handleCreatePost}
+            onClear={handleClear}
+            onValidationError={handleValidationError}
+          />
           <div className="w-full">
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-lg">Your Posts</h2>

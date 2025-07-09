@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button"
-import { GitHubIcon, XIcon } from "@daveyplate/better-auth-ui"
+import { GitHubIcon } from "@daveyplate/better-auth-ui"
 import { Link, createFileRoute } from "@tanstack/react-router"
 
 export const Route = createFileRoute("/")({
