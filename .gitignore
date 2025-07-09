@@ -27,3 +27,4 @@ routeTree.gen.ts
 .cursor/
 .tanstack/
 .nitro/
+local.db
