@@ -33,13 +33,13 @@ export function Header() {
             {session.data?.user ? (
               <>
                 <Link
-                  to="/app"
+                  to="/app/write"
                   className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                 >
-                  Home
+                  Write
                 </Link>
                 <Link
-                  to="/app/platforms"
+                  to="/app"
                   className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
                 >
                   Platforms

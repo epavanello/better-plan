@@ -53,7 +53,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/x/callback")
       .from(integrations)
       .where(
         eq(integrations.userId, session.user.id) &&
-          eq(integrations.platformAccountId, platformAccountId)
+        eq(integrations.platformAccountId, platformAccountId)
       )
       .limit(1)
 
@@ -78,6 +78,6 @@ export const ServerRoute = createServerFileRoute("/api/integrations/x/callback")
       path: "/",
       maxAge: 0
     })
-    return Response.redirect(`${envConfig.APP_URL}/app/platforms`, 302)
+    return Response.redirect(`${envConfig.APP_URL}/app`, 302)
   }
 })
