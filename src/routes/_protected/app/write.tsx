@@ -1,4 +1,5 @@
 import { platformIcons } from "@/components/platform-icons"
+import { PostsList } from "@/components/posts-list"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,11 +14,9 @@ import {
 import { Textarea } from "@/components/ui/textarea"
 import { getIntegrations } from "@/functions/integrations"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
-import { PopoverClose } from "@radix-ui/react-popover"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { formatRelative } from "date-fns"
-import { CalendarClock, Download, ExternalLink, Rocket, Trash2, X } from "lucide-react"
+import { CalendarClock, Download, Rocket, X } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -302,97 +301,17 @@ function RouteComponent() {
                 </Button>
               )}
             </div>
-            <div className="rounded-lg border">
-              <div className="divide-y divide-border">
-                {isPostsPending ? (
-                  <div className="p-4 text-center text-muted-foreground">Loading posts...</div>
-                ) : posts.length > 0 ? (
-                  posts.map((post) => (
-                    <div key={post.id} className="p-4">
-                      <div className="mb-2 flex items-center justify-between text-muted-foreground text-sm">
-                        <div className="flex items-center gap-2">
-                          {platformIcons[post.integration.platform]}
-                          {post.integration.platformAccountName}
-                          {" - "}
-                          <span className="capitalize">{post.status}</span>
-                          {post.status === "scheduled" && post.scheduledAt && (
-                            <span className="text-blue-600">
-                              (scheduled for{" "}
-                              {formatRelative(new Date(post.scheduledAt), new Date())})
-                            </span>
-                          )}
-                          {post.source === "imported" && (
-                            <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">
-                              Imported
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <time
-                            title={new Date(post.createdAt).toLocaleString()}
-                            dateTime={new Date(post.createdAt).toISOString()}
-                          >
-                            {formatRelative(new Date(post.createdAt), new Date())}
-                          </time>
-                          {post.postUrl && (
-                            <a
-                              href={post.postUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-muted-foreground hover:text-foreground"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </a>
-                          )}
-                          {post.status === "scheduled" && (
-                            <Popover>
-                              <PopoverTrigger asChild>
-                                <Button variant="ghost" size="icon">
-                                  <Trash2 />
-                                </Button>
-                              </PopoverTrigger>
-                              <PopoverContent className="w-64" side="bottom">
-                                <div className="space-y-2">
-                                  <h4 className="font-medium text-sm">Delete Post</h4>
-                                  <p className="text-muted-foreground text-xs">
-                                    Are you sure you want to delete this scheduled post?
-                                  </p>
-                                  <div className="flex justify-end gap-2">
-                                    <PopoverClose asChild>
-                                      <Button variant="ghost" size="sm">
-                                        Cancel
-                                      </Button>
-                                    </PopoverClose>
-                                    <Button
-                                      variant="destructive"
-                                      size="sm"
-                                      onClick={() =>
-                                        deleteMutate({
-                                          data: {
-                                            id: post.id
-                                          }
-                                        })
-                                      }
-                                    >
-                                      Delete
-                                    </Button>
-                                  </div>
-                                </div>
-                              </PopoverContent>
-                            </Popover>
-                          )}
-                        </div>
-                      </div>
-                      <p>{post.content}</p>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground">
-                    You haven't created any posts yet.
-                  </div>
-                )}
-              </div>
-            </div>
+            <PostsList
+              posts={posts}
+              isPending={isPostsPending}
+              onDeletePost={(postId) =>
+                deleteMutate({
+                  data: {
+                    id: postId
+                  }
+                })
+              }
+            />
           </div>
         </>
       )}
