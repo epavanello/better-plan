@@ -12,20 +12,9 @@ export default defineConfig({
             projects: ["./tsconfig.json"]
         }),
         tanstackStart({
-            // tsr: {
-            //     generatedRouteTree: "./app/routeTree.gen.ts",
-            //     routesDirectory: "./app/routes"
-            // },
-            // client: {
-            //     entry: "./app/client.tsx"
-            // },
             server: {
-                entry: "./ssr.tsx"
+                entry: "./ssr.tsx",
             }
-            // public: {
-            //     base: "/",
-            //     dir: "./app"
-            // }
         }),
         tailwindcss()
     ],

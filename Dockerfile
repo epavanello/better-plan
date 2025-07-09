@@ -23,12 +23,17 @@ ENV NODE_ENV=production
 # This will also compile the migration script
 RUN pnpm build
 
+# Prune dev dependencies by reinstalling only prod dependencies.
+# This creates a clean `node_modules` folder to be copied to the final image.
+RUN pnpm install --prod
+
+
 # Stage 2: Production image
 FROM node:20-slim AS production
 
 WORKDIR /app
 
-# Copy ALL dependencies (including dev) from the build stage
+# Copy pruned production dependencies from the build stage
 COPY --from=build /app/node_modules ./node_modules
 
 # Copy the build output, including the compiled migration script
