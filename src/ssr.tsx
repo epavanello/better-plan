@@ -7,5 +7,5 @@ runMigrations()
 initializeNativeScheduler()
 
 export default createStartHandler({
-    createRouter
+  createRouter
 })(defaultStreamHandler)
