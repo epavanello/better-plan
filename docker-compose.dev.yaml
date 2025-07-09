@@ -1,18 +1,35 @@
 version: '3.8'
 
+# Development compose file
+# This is now used for local development with SQLite
+# Run: docker compose -f docker-compose.dev.yaml up
+
 services:
-  postgres:
-    image: postgres:16-alpine
-    container_name: better-plan-postgres-dev
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: ${POSTGRES_DB}
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: better-plan-app-dev
     ports:
-    - "5432:5432"
+    - "3000:3000"
+    environment:
+    # --- Local SQLite database for development
+    - DATABASE_URL=file:///app/data/dev.db
+    - DATABASE_AUTH_TOKEN=
+    - DATABASE_DIALECT=sqlite
+    - NODE_ENV=development
+    # --- Other application variables
+    - APP_URL=${APP_URL:-http://localhost:3000}
+    - X_CLIENT_ID=${X_CLIENT_ID}
+    - X_CLIENT_SECRET=${X_CLIENT_SECRET}
+    - BETTER_AUTH_SECRET=${BETTER_AUTH_SECRET:-dev-secret-key-change-in-production}
+    - DISABLE_SIGNUP=${DISABLE_SIGNUP:-false}
     volumes:
-    - postgres_data_dev:/var/lib/postgresql/data
+    # --- Persistent volume for development SQLite database
+    - sqlite_data_dev:/app/data
+    # --- Mount source code for development (if needed)
+    # - .:/app
     restart: unless-stopped
 
 volumes:
-  postgres_data_dev:
+  sqlite_data_dev:

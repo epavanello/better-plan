@@ -1,4 +1,4 @@
-import { migrate } from "drizzle-orm/node-postgres/migrator"
+import { migrate } from "drizzle-orm/libsql/migrator"
 import { db } from "./db"
 
 export async function runMigrations() {

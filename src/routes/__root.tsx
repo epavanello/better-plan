@@ -5,8 +5,8 @@ import type { ReactNode } from "react"
 
 import { Header } from "@/components/header"
 import { getServerSession } from "@/functions/session"
-import globalsCss from "../styles/globals.css?url"
 import { Providers } from "../providers"
+import globalsCss from "../styles/globals.css?url"
 
 export const Route = createRootRoute({
     head: () => ({

@@ -1,8 +1,8 @@
 import { users } from "@/auth-schema"
 import { relations } from "drizzle-orm"
-import { pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core"
+import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
-export const platformEnum = pgEnum("platform", [
+export const PLATFORM_VALUES = [
     "x",
     "reddit",
     "instagram",
@@ -10,43 +10,43 @@ export const platformEnum = pgEnum("platform", [
     "youtube",
     "facebook",
     "linkedin"
-])
+] as const
 
-export type Platform = (typeof platformEnum.enumValues)[number]
+export type Platform = (typeof PLATFORM_VALUES)[number]
 
-export const integrations = pgTable("integrations", {
+export const integrations = sqliteTable("integrations", {
     id: text("id").primaryKey(),
-    platform: platformEnum("platform").notNull(),
+    platform: text("platform", { enum: PLATFORM_VALUES }).notNull(),
     platformAccountId: text("platform_account_id").notNull(),
     platformAccountName: text("platform_account_name").notNull(),
     accessToken: text("access_token").notNull(),
     refreshToken: text("refresh_token"),
-    expiresAt: timestamp("expires_at"),
+    expiresAt: integer("expires_at", { mode: "timestamp" }),
     scopes: text("scopes"),
     userId: text("user_id")
         .notNull()
         .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at")
+    createdAt: integer("created_at", { mode: "timestamp" })
         .$defaultFn(() => new Date())
         .notNull(),
-    updatedAt: timestamp("updated_at")
+    updatedAt: integer("updated_at", { mode: "timestamp" })
         .$defaultFn(() => new Date())
         .notNull()
 })
 
 // Nuova tabella per le app credentials degli utenti
-export const userAppCredentials = pgTable("user_app_credentials", {
+export const userAppCredentials = sqliteTable("user_app_credentials", {
     id: text("id").primaryKey(),
-    platform: platformEnum("platform").notNull(),
+    platform: text("platform", { enum: PLATFORM_VALUES }).notNull(),
     clientId: text("client_id").notNull(),
     clientSecret: text("client_secret").notNull(),
     userId: text("user_id")
         .notNull()
         .references(() => users.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at")
+    createdAt: integer("created_at", { mode: "timestamp" })
         .$defaultFn(() => new Date())
         .notNull(),
-    updatedAt: timestamp("updated_at")
+    updatedAt: integer("updated_at", { mode: "timestamp" })
         .$defaultFn(() => new Date())
         .notNull()
 })

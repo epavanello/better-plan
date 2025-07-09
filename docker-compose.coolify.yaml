@@ -1,32 +1,21 @@
 
+# Coolify deployment configuration
+# This configuration is for production deployment using Turso as database
+
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     environment:
-    # --- Connection details for PostgreSQL
-    - POSTGRES_USER=${SERVICE_USER_POSTGRES}
-    - POSTGRES_PASSWORD=${SERVICE_PASSWORD_POSTGRES}
-    - POSTGRES_DB=${POSTGRES_DB:-better_plan_db}
-    - POSTGRES_PORT=${POSTGRES_PORT:-5432}
-    # --- Host override for Docker's internal network
-    - POSTGRES_HOST=postgres
+    # --- Turso database connection (set in Coolify dashboard)
+    - DATABASE_URL=${DATABASE_URL}
+    - DATABASE_AUTH_TOKEN=${DATABASE_AUTH_TOKEN}
+    - DATABASE_DIALECT=${DATABASE_DIALECT:-turso}
+    - NODE_ENV=${NODE_ENV:-production}
     # --- Other application variables
     - APP_URL=${APP_URL}
     - X_CLIENT_ID=${X_CLIENT_ID}
     - X_CLIENT_SECRET=${X_CLIENT_SECRET}
     - BETTER_AUTH_SECRET=${SERVICE_PASSWORD_AUTH}
     - DISABLE_SIGNUP=${DISABLE_SIGNUP:-false}
-    depends_on:
-    - postgres
-
-  postgres:
-    image: postgres:16-alpine
-    environment:
-      POSTGRES_USER: ${SERVICE_USER_POSTGRES}
-      POSTGRES_PASSWORD: ${SERVICE_PASSWORD_POSTGRES}
-      POSTGRES_DB: ${POSTGRES_DB:-better_plan_db}
-      POSTGRES_PORT: ${POSTGRES_PORT:-5432}
-    volumes:
-    - postgres_data:/var/lib/postgresql/data

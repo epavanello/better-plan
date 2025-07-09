@@ -39,8 +39,11 @@ COPY --from=build /app/node_modules ./node_modules
 # Copy the build output, including the compiled migration script
 COPY --from=build /app/.output ./.output
 
-# Copy migration scripts
+# Copy migration scripts for Turso/SQLite
 COPY --from=build /app/migrations ./migrations
+
+# Create directory for local SQLite database (when not using Turso)
+RUN mkdir -p /app/data && chmod 755 /app/data
 
 # Expose the port the app runs on
 EXPOSE 3000
