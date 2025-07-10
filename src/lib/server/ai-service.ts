@@ -280,9 +280,9 @@ export class AiService {
     if (!isAiEnabled()) {
       if (isSaasDeployment()) {
         return { canAccess: false, reason: "AI features require a Pro subscription" }
-      } else {
-        return { canAccess: false, reason: "OpenAI API key not configured" }
       }
+
+      return { canAccess: false, reason: "OpenAI API key not configured" }
     }
 
     // For self-hosted, if AI is enabled, user has access
