@@ -1,5 +1,3 @@
-/// <reference types="vite/client" />
-
 import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router"
 import type { ReactNode } from "react"
 
@@ -57,6 +55,9 @@ function RootDocument({ children }: Readonly<{ children: ReactNode }>) {
         <meta name="theme-color" media="(prefers-color-scheme: dark)" content="oklch(0.145 0 0)" />
 
         <HeadContent />
+        {import.meta.env.VITE_PLAUSIBLE_DOMAIN && import.meta.env.VITE_PLAUSIBLE_SCRIPT_URL && (
+          <script defer data-domain={import.meta.env.VITE_PLAUSIBLE_DOMAIN} src={import.meta.env.VITE_PLAUSIBLE_SCRIPT_URL} />
+        )}
       </head>
 
       <body>
