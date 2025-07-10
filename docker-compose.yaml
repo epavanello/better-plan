@@ -28,6 +28,9 @@ services:
     - AI_MAX_CONTEXT_WINDOW=${AI_MAX_CONTEXT_WINDOW:-4000}
     - AI_MAX_GENERATIONS_PER_MONTH=${AI_MAX_GENERATIONS_PER_MONTH:-50}
     - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
+    # --- Plausible Analytics
+    - VITE_PLAUSIBLE_DOMAIN=${VITE_PLAUSIBLE_DOMAIN}
+    - VITE_PLAUSIBLE_SCRIPT_URL=${VITE_PLAUSIBLE_SCRIPT_URL}
     volumes:
     # --- Volume for local SQLite database (when not using Turso)
     - sqlite_data:/app/data
