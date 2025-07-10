@@ -29,10 +29,7 @@ class NotImplementedPlatform extends BaseSocialPlatform {
 }
 
 // Registry delle piattaforme supportate
-const PLATFORM_REGISTRY: Record<
-  Platform,
-  PlatformConstructor | { new (name: Platform): BaseSocialPlatform }
-> = {
+const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new (name: Platform): BaseSocialPlatform }> = {
   x: XPlatform,
   reddit: class extends NotImplementedPlatform {
     constructor() {

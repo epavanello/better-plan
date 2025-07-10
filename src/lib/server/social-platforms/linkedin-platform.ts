@@ -18,10 +18,7 @@ export class LinkedInPlatform extends BaseSocialPlatform {
     throw new Error("LinkedIn authorization not yet implemented")
   }
 
-  async validateCredentials(
-    accessToken: string,
-    effectiveCredentials: { clientId: string; clientSecret: string }
-  ): Promise<boolean> {
+  async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
       // LinkedIn usa OAuth 2.0 - solo Bearer token, nessun secret
       const response = await fetch("https://api.linkedin.com/v2/me", {

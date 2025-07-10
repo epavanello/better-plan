@@ -2,13 +2,7 @@ import { CreatePostForm } from "@/components/create-post-form"
 import { platformIcons } from "@/components/platform-icons"
 import { PostsList } from "@/components/posts-list"
 import { Button } from "@/components/ui/button"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getIntegrations } from "@/functions/integrations"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
 import { useMutation, useQuery } from "@tanstack/react-query"
@@ -39,10 +33,7 @@ function RouteComponent() {
     enabled: !!selectedIntegrationId
   })
 
-  const currentIntegration = useMemo(
-    () => integrations.find((i) => i.id === selectedIntegrationId),
-    [integrations, selectedIntegrationId]
-  )
+  const currentIntegration = useMemo(() => integrations.find((i) => i.id === selectedIntegrationId), [integrations, selectedIntegrationId])
   const platformSupportsFetching = useMemo(() => {
     return currentIntegration?.supportsFetchingRecentPosts ?? false
   }, [currentIntegration])
@@ -155,11 +146,7 @@ function RouteComponent() {
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-semibold text-lg">Your Posts</h2>
               {platformSupportsFetching && (
-                <Button
-                  onClick={handleFetchRecent}
-                  disabled={!selectedIntegrationId || isSyncingPosts}
-                  size="sm"
-                >
+                <Button onClick={handleFetchRecent} disabled={!selectedIntegrationId || isSyncingPosts} size="sm">
                   <Download className="mr-2 h-4 w-4" />
                   {isSyncingPosts ? "Syncing..." : "Sync posts"}
                 </Button>

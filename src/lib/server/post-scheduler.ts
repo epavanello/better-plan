@@ -26,13 +26,7 @@ export async function processScheduledPosts() {
     })
     .from(posts)
     .innerJoin(integrations, eq(posts.integrationId, integrations.id))
-    .where(
-      and(
-        eq(posts.status, "scheduled"),
-        lte(posts.scheduledAt, new Date()),
-        lte(posts.failCount, 3)
-      )
-    )
+    .where(and(eq(posts.status, "scheduled"), lte(posts.scheduledAt, new Date()), lte(posts.failCount, 3)))
 
   console.log(`Found ${scheduledPosts.length} posts to process`)
 

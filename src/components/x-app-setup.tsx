@@ -52,12 +52,10 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
         <div className="flex items-start gap-3">
           <Info className="mt-0.5 h-5 w-5 text-blue-600 dark:text-blue-400" />
           <div className="flex-1">
-            <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">
-              X (Twitter) App Configuration
-            </h3>
+            <h3 className="mb-2 font-semibold text-blue-900 dark:text-blue-100">X (Twitter) App Configuration</h3>
             <p className="mb-3 text-blue-800 text-sm dark:text-blue-200">
-              To connect your X account, you need to first create a Twitter app and enter your
-              credentials here. We'll validate them before saving.
+              To connect your X account, you need to first create a Twitter app and enter your credentials here. We'll validate them before
+              saving.
             </p>
             <Button
               type="button"
@@ -99,16 +97,12 @@ export function XAppSetup({ onComplete, redirectUrl }: XAppSetupProps) {
                   <strong>Type of App:</strong> Web App
                 </li>
                 <li>
-                  <strong>Callback URL:</strong>{" "}
-                  <code className="rounded bg-gray-200 px-1 text-xs dark:bg-gray-700">
-                    {redirectUrl}
-                  </code>
+                  <strong>Callback URL:</strong> <code className="rounded bg-gray-200 px-1 text-xs dark:bg-gray-700">{redirectUrl}</code>
                 </li>
               </ul>
             </li>
             <li>
-              Copy the <strong>API Key</strong> (Client ID) and <strong>API Secret</strong> (Client
-              Secret)
+              Copy the <strong>API Key</strong> (Client ID) and <strong>API Secret</strong> (Client Secret)
             </li>
             <li>Paste the credentials in the form below</li>
           </ol>

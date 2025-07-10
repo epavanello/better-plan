@@ -2,12 +2,7 @@ import { platformIcons } from "@/components/platform-icons"
 import { Button } from "@/components/ui/button"
 import { XAppSetup } from "@/components/x-app-setup"
 import type { Platform } from "@/database/schema/integrations"
-import {
-  deleteIntegration,
-  deleteUserAppCredentials,
-  getIntegrations,
-  getUserPlatformStatus
-} from "@/functions/integrations"
+import { deleteIntegration, deleteUserAppCredentials, getIntegrations, getUserPlatformStatus } from "@/functions/integrations"
 import { getAllPlatformInfo, startPlatformAuthorization } from "@/functions/platforms"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useRouter } from "@tanstack/react-router"
@@ -17,10 +12,7 @@ import { toast } from "sonner"
 
 export const Route = createFileRoute("/_protected/app/")({
   loader: async () => {
-    const [integrations, platformsInfo] = await Promise.all([
-      getIntegrations(),
-      getAllPlatformInfo()
-    ])
+    const [integrations, platformsInfo] = await Promise.all([getIntegrations(), getAllPlatformInfo()])
     return { integrations, platformsInfo }
   },
   component: IntegrationsComponent
@@ -120,9 +112,7 @@ function IntegrationsComponent() {
       <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
         <div className="space-y-2">
           <h1 className="font-bold text-2xl">Configure X (Twitter) App</h1>
-          <p className="text-muted-foreground">
-            Configure your X app credentials to connect your account.
-          </p>
+          <p className="text-muted-foreground">Configure your X app credentials to connect your account.</p>
         </div>
 
         <XAppSetup onComplete={handleSetupComplete} redirectUrl={platformSetups.x.redirectUrl} />
@@ -138,9 +128,7 @@ function IntegrationsComponent() {
     <div className="container mx-auto max-w-4xl flex-1 space-y-8 p-4">
       <div className="space-y-2">
         <h1 className="font-bold text-2xl">Integrations</h1>
-        <p className="text-muted-foreground">
-          Connect and manage your accounts to post across different platforms.
-        </p>
+        <p className="text-muted-foreground">Connect and manage your accounts to post across different platforms.</p>
       </div>
 
       <div className="space-y-8">
@@ -151,27 +139,15 @@ function IntegrationsComponent() {
               {integrations.map((integration) => {
                 const platformInfo = platformsInfo.find((p) => p.name === integration.platform)
                 return (
-                  <div
-                    key={integration.id}
-                    className="flex items-center justify-between rounded-lg border p-4"
-                  >
+                  <div key={integration.id} className="flex items-center justify-between rounded-lg border p-4">
                     <div className="flex items-center gap-4">
                       {platformIcons[integration.platform]}
                       <div>
-                        <p className="font-semibold">
-                          {platformInfo?.displayName || integration.platform}
-                        </p>
-                        <p className="text-muted-foreground text-sm">
-                          {integration.platformAccountName}
-                        </p>
+                        <p className="font-semibold">{platformInfo?.displayName || integration.platform}</p>
+                        <p className="text-muted-foreground text-sm">{integration.platformAccountName}</p>
                       </div>
                     </div>
-                    <Button
-                      variant="destructive"
-                      size="icon"
-                      onClick={() => remove({ data: integration.id })}
-                      disabled={isRemovePending}
-                    >
+                    <Button variant="destructive" size="icon" onClick={() => remove({ data: integration.id })} disabled={isRemovePending}>
                       <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
@@ -200,18 +176,12 @@ function IntegrationsComponent() {
 
                     {platformInfo.isImplemented ? (
                       setupInfo && platformInfo.requiresSetup && !setupInfo.hasCredentials ? (
-                        <Button
-                          variant="outline"
-                          onClick={() => handlePlatformConnect(platformInfo.name)}
-                        >
+                        <Button variant="outline" onClick={() => handlePlatformConnect(platformInfo.name)}>
                           <Settings className="mr-2 h-4 w-4" />
                           Setup
                         </Button>
                       ) : (
-                        <Button
-                          onClick={() => handlePlatformConnect(platformInfo.name)}
-                          disabled={isCurrentlyAuthenticating}
-                        >
+                        <Button onClick={() => handlePlatformConnect(platformInfo.name)} disabled={isCurrentlyAuthenticating}>
                           <PlusCircle className="mr-2 h-4 w-4" />
                           {isCurrentlyAuthenticating ? "Redirecting..." : "Connect"}
                         </Button>
@@ -227,9 +197,7 @@ function IntegrationsComponent() {
                       {setupInfo.hasCredentials ? (
                         <div className="flex items-center justify-between rounded bg-green-50 px-3 py-2 dark:bg-green-950/20">
                           <span className="text-green-700 dark:text-green-300">
-                            {setupInfo.credentialSource === "system"
-                              ? "System configured ✓"
-                              : "App configured ✓"}
+                            {setupInfo.credentialSource === "system" ? "System configured ✓" : "App configured ✓"}
                           </span>
                           {setupInfo.credentialSource === "user" && (
                             <Button

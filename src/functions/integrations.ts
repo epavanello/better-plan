@@ -1,11 +1,7 @@
 import { db } from "@/database/db"
 import { type Platform, integrations, userAppCredentials } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
-import {
-  getPlatformCredentialsInfo,
-  getUserCredentialsInfo,
-  validatePlatformCredentials
-} from "@/lib/server/integrations"
+import { getPlatformCredentialsInfo, getUserCredentialsInfo, validatePlatformCredentials } from "@/lib/server/integrations"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
 import { createServerFn } from "@tanstack/react-start"
 import { and, eq } from "drizzle-orm"
@@ -14,10 +10,7 @@ import { z } from "zod"
 
 export const getIntegrations = createServerFn({ method: "GET" }).handler(async () => {
   const session = await getSessionOrThrow()
-  const userIntegrations = await db
-    .select()
-    .from(integrations)
-    .where(eq(integrations.userId, session.user.id))
+  const userIntegrations = await db.select().from(integrations).where(eq(integrations.userId, session.user.id))
 
   return userIntegrations.map((i) => {
     const platform = PlatformFactory.getPlatform(i.platform)
@@ -33,27 +26,21 @@ export const deleteIntegration = createServerFn({ method: "POST" })
   .handler(async ({ data: integrationId }) => {
     const session = await getSessionOrThrow()
 
-    await db
-      .delete(integrations)
-      .where(and(eq(integrations.id, integrationId), eq(integrations.userId, session.user.id)))
+    await db.delete(integrations).where(and(eq(integrations.id, integrationId), eq(integrations.userId, session.user.id)))
 
     return { success: true }
   })
 
 // Funzione per verificare se una piattaforma necessita di credenziali utente
 export const getPlatformRequiresUserCredentials = createServerFn({ method: "GET" })
-  .validator((payload: Platform) =>
-    z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload)
-  )
+  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
   .handler(async ({ data: platform }) => {
     return await getPlatformCredentialsInfo(platform)
   })
 
 // Funzione per ottenere lo stato completo delle credenziali utente per una piattaforma
 export const getUserPlatformStatus = createServerFn({ method: "GET" })
-  .validator((payload: Platform) =>
-    z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload)
-  )
+  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
   .handler(async ({ data: platform }) => {
     const session = await getSessionOrThrow()
     const userInfo = await getUserCredentialsInfo(platform, session.user.id)
@@ -67,9 +54,7 @@ export const getUserPlatformStatus = createServerFn({ method: "GET" })
 
 // Funzione per ottenere le credenziali utente per una piattaforma (solo se necessarie)
 export const getUserAppCredentials = createServerFn({ method: "GET" })
-  .validator((payload: Platform) =>
-    z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload)
-  )
+  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
   .handler(async ({ data: platform }) => {
     const session = await getSessionOrThrow()
     const userInfo = await getUserCredentialsInfo(platform, session.user.id)
@@ -83,12 +68,7 @@ export const getUserAppCredentials = createServerFn({ method: "GET" })
       const credentials = await db
         .select()
         .from(userAppCredentials)
-        .where(
-          and(
-            eq(userAppCredentials.userId, session.user.id),
-            eq(userAppCredentials.platform, platform)
-          )
-        )
+        .where(and(eq(userAppCredentials.userId, session.user.id), eq(userAppCredentials.platform, platform)))
         .limit(1)
 
       return credentials[0] || null
@@ -118,12 +98,7 @@ export const saveUserAppCredentials = createServerFn({ method: "POST" })
     const existing = await db
       .select()
       .from(userAppCredentials)
-      .where(
-        and(
-          eq(userAppCredentials.userId, session.user.id),
-          eq(userAppCredentials.platform, platform)
-        )
-      )
+      .where(and(eq(userAppCredentials.userId, session.user.id), eq(userAppCredentials.platform, platform)))
       .limit(1)
 
     if (existing[0]) {
@@ -152,20 +127,13 @@ export const saveUserAppCredentials = createServerFn({ method: "POST" })
 
 // Funzione per eliminare le credenziali utente
 export const deleteUserAppCredentials = createServerFn({ method: "POST" })
-  .validator((payload: Platform) =>
-    z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload)
-  )
+  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
   .handler(async ({ data: platform }) => {
     const session = await getSessionOrThrow()
 
     await db
       .delete(userAppCredentials)
-      .where(
-        and(
-          eq(userAppCredentials.userId, session.user.id),
-          eq(userAppCredentials.platform, platform)
-        )
-      )
+      .where(and(eq(userAppCredentials.userId, session.user.id), eq(userAppCredentials.platform, platform)))
 
     return { success: true }
   })

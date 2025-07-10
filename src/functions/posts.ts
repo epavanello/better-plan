@@ -10,9 +10,7 @@ import { and, desc, eq, sql } from "drizzle-orm"
 import { z } from "zod"
 
 export const createPost = createServerFn({ method: "POST" })
-  .validator((payload: Omit<InsertPost, "userId">) =>
-    insertPostSchema.omit({ userId: true }).parse(payload)
-  )
+  .validator((payload: Omit<InsertPost, "userId">) => insertPostSchema.omit({ userId: true }).parse(payload))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
@@ -26,10 +24,7 @@ export const createPost = createServerFn({ method: "POST" })
       .returning()
 
     if (post.status === "draft") {
-      const [integration] = await db
-        .select()
-        .from(integrations)
-        .where(eq(integrations.id, post.integrationId))
+      const [integration] = await db.select().from(integrations).where(eq(integrations.id, post.integrationId))
 
       if (!integration) {
         throw new Error("Integration not found")
@@ -99,9 +94,7 @@ export const deletePost = createServerFn({ method: "POST" })
   })
 
 export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
-  .validator((payload: { integrationId: string }) =>
-    z.object({ integrationId: z.string() }).parse(payload)
-  )
+  .validator((payload: { integrationId: string }) => z.object({ integrationId: z.string() }).parse(payload))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 

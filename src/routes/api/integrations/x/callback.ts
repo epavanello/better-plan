@@ -51,10 +51,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/x/callback")
     const existingIntegration = await db
       .select()
       .from(integrations)
-      .where(
-        eq(integrations.userId, session.user.id) &&
-          eq(integrations.platformAccountId, platformAccountId)
-      )
+      .where(eq(integrations.userId, session.user.id) && eq(integrations.platformAccountId, platformAccountId))
       .limit(1)
 
     if (existingIntegration.length > 0) {

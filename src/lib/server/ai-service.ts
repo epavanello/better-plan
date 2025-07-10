@@ -1,12 +1,5 @@
 import { db } from "@/database/db"
-import {
-  type Post,
-  type UserContext,
-  aiUsage,
-  posts,
-  subscriptions,
-  userContext
-} from "@/database/schema"
+import { type Post, type UserContext, aiUsage, posts, subscriptions, userContext } from "@/database/schema"
 import { getAiConfig, isAiEnabled, isSaasDeployment } from "@/lib/env"
 import { openai } from "@ai-sdk/openai"
 import { generateText } from "ai"
@@ -171,13 +164,7 @@ export class AiService {
       const recentPosts = await db
         .select()
         .from(posts)
-        .where(
-          and(
-            eq(posts.userId, userId),
-            eq(posts.integrationId, integrationId),
-            eq(posts.status, "posted")
-          )
-        )
+        .where(and(eq(posts.userId, userId), eq(posts.integrationId, integrationId), eq(posts.status, "posted")))
         .orderBy(desc(posts.postedAt))
         .limit(limit)
 
@@ -189,8 +176,7 @@ export class AiService {
   }
 
   private buildSystemPrompt(context: UserContext | null, recentPosts: Post[]): string {
-    let systemPrompt =
-      "You are a social media content creator assistant. Your task is to generate engaging, authentic social media posts."
+    let systemPrompt = "You are a social media content creator assistant. Your task is to generate engaging, authentic social media posts."
 
     // Add user context if available
     if (context) {
@@ -201,8 +187,7 @@ export class AiService {
       if (context.targetAudience) systemPrompt += `\n- Target Audience: ${context.targetAudience}`
       if (context.writingStyle) systemPrompt += `\n- Writing Style: ${context.writingStyle}`
       if (context.toneOfVoice) systemPrompt += `\n- Tone of Voice: ${context.toneOfVoice}`
-      if (context.customInstructions)
-        systemPrompt += `\n- Custom Instructions: ${context.customInstructions}`
+      if (context.customInstructions) systemPrompt += `\n- Custom Instructions: ${context.customInstructions}`
     }
 
     // Add recent posts for style consistency
@@ -211,8 +196,7 @@ export class AiService {
       recentPosts.forEach((post, index) => {
         systemPrompt += `\n${index + 1}. ${post.content}`
       })
-      systemPrompt +=
-        "\n\nPlease maintain consistency with the writing style and tone shown in these recent posts."
+      systemPrompt += "\n\nPlease maintain consistency with the writing style and tone shown in these recent posts."
     }
 
     // Add generation guidelines
@@ -249,8 +233,7 @@ export class AiService {
       // Get or create usage record for current period
       const now = new Date()
       const periodStart = subscription.currentPeriodStart || now
-      const periodEnd =
-        subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0)
 
       const existingUsage = await db
         .select()

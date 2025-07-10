@@ -2,15 +2,7 @@ import { users } from "@/auth-schema"
 import { relations } from "drizzle-orm"
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core"
 
-export const PLATFORM_VALUES = [
-  "x",
-  "reddit",
-  "instagram",
-  "tiktok",
-  "youtube",
-  "facebook",
-  "linkedin"
-] as const
+export const PLATFORM_VALUES = ["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"] as const
 
 export type Platform = (typeof PLATFORM_VALUES)[number]
 

@@ -8,10 +8,7 @@ import { PlatformFactory } from "./social-platforms/platform-factory"
 
 export async function postToSocialMedia(postData: PostData) {
   const platform = PlatformFactory.getPlatform(postData.integration.platform)
-  const credentials = await getEffectiveCredentials(
-    postData.integration.platform as Platform,
-    postData.userId
-  )
+  const credentials = await getEffectiveCredentials(postData.integration.platform as Platform, postData.userId)
 
   const result = await platform.post(postData, credentials)
 

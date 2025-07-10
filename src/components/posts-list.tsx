@@ -24,9 +24,7 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
   if (posts.length === 0) {
     return (
       <div className="rounded-lg border">
-        <div className="p-4 text-center text-muted-foreground">
-          You haven't created any posts yet.
-        </div>
+        <div className="p-4 text-center text-muted-foreground">You haven't created any posts yet.</div>
       </div>
     )
   }
@@ -43,30 +41,18 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
                 {" - "}
                 <span className="capitalize">{post.status}</span>
                 {post.status === "scheduled" && post.scheduledAt && (
-                  <span className="text-blue-600">
-                    (scheduled for {formatRelative(new Date(post.scheduledAt), new Date())})
-                  </span>
+                  <span className="text-blue-600">(scheduled for {formatRelative(new Date(post.scheduledAt), new Date())})</span>
                 )}
                 {post.source === "imported" && (
-                  <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">
-                    Imported
-                  </span>
+                  <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">Imported</span>
                 )}
               </div>
               <div className="flex items-center gap-2">
-                <time
-                  title={new Date(post.createdAt).toLocaleString()}
-                  dateTime={new Date(post.createdAt).toISOString()}
-                >
+                <time title={new Date(post.createdAt).toLocaleString()} dateTime={new Date(post.createdAt).toISOString()}>
                   {formatRelative(new Date(post.createdAt), new Date())}
                 </time>
                 {post.postUrl && (
-                  <a
-                    href={post.postUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-muted-foreground hover:text-foreground"
-                  >
+                  <a href={post.postUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-foreground">
                     <ExternalLink className="h-4 w-4" />
                   </a>
                 )}
@@ -80,20 +66,14 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
                     <PopoverContent className="w-64" side="bottom">
                       <div className="space-y-2">
                         <h4 className="font-medium text-sm">Delete Post</h4>
-                        <p className="text-muted-foreground text-xs">
-                          Are you sure you want to delete this scheduled post?
-                        </p>
+                        <p className="text-muted-foreground text-xs">Are you sure you want to delete this scheduled post?</p>
                         <div className="flex justify-end gap-2">
                           <PopoverClose asChild>
                             <Button variant="ghost" size="sm">
                               Cancel
                             </Button>
                           </PopoverClose>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => onDeletePost(post.id)}
-                          >
+                          <Button variant="destructive" size="sm" onClick={() => onDeletePost(post.id)}>
                             Delete
                           </Button>
                         </div>

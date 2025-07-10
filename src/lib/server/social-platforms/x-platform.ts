@@ -64,10 +64,7 @@ export class XPlatform extends BaseSocialPlatform {
     return { token, secret }
   }
 
-  async validateCredentials(
-    accessToken: string,
-    effectiveCredentials: { clientId: string; clientSecret: string }
-  ): Promise<boolean> {
+  async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
       const { token, secret } = this.parseAccessToken(accessToken)
 

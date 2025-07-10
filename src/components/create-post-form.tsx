@@ -173,28 +173,19 @@ export function CreatePostForm({
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={true}
-                className="w-full cursor-not-allowed opacity-60"
-              >
+              <Button type="button" variant="outline" disabled className="w-full cursor-not-allowed opacity-60">
                 <Lock className="mr-2 h-4 w-4" />
                 Generate with AI
               </Button>
             </TooltipTrigger>
             <TooltipContent>
               <p className="max-w-xs">
-                {isCheckingAiAccess
-                  ? "Checking AI availability..."
-                  : aiUnavailableReason || "AI features unavailable"}
+                {isCheckingAiAccess ? "Checking AI availability..." : aiUnavailableReason || "AI features unavailable"}
               </p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        {!isCheckingAiAccess && aiUnavailableReason && (
-          <p className="text-center text-muted-foreground text-sm">{aiUnavailableReason}</p>
-        )}
+        {!isCheckingAiAccess && aiUnavailableReason && <p className="text-center text-muted-foreground text-sm">{aiUnavailableReason}</p>}
       </div>
     )
   }
@@ -218,12 +209,7 @@ export function CreatePostForm({
                   onChange={(e) => setAiPrompt(e.target.value)}
                   disabled={isGenerating}
                 />
-                <Button
-                  type="button"
-                  onClick={handleGenerateAiContent}
-                  disabled={!aiPrompt.trim() || isGenerating}
-                  size="sm"
-                >
+                <Button type="button" onClick={handleGenerateAiContent} disabled={!aiPrompt.trim() || isGenerating} size="sm">
                   {isGenerating ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -254,12 +240,7 @@ export function CreatePostForm({
         </div>
 
         {/* Main Content Textarea */}
-        <Textarea
-          placeholder="What's on your mind?"
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          disabled={isGenerating}
-        />
+        <Textarea placeholder="What's on your mind?" value={content} onChange={(e) => setContent(e.target.value)} disabled={isGenerating} />
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2">
@@ -278,16 +259,10 @@ export function CreatePostForm({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="font-medium text-lg">Publish Post</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Your post will be published immediately to {currentIntegrationName}.
-                  </p>
+                  <p className="text-muted-foreground text-sm">Your post will be published immediately to {currentIntegrationName}.</p>
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsPublishPopoverOpen(false)}
-                    disabled={isPending}
-                  >
+                  <Button variant="ghost" onClick={() => setIsPublishPopoverOpen(false)} disabled={isPending}>
                     Cancel
                   </Button>
                   <Button onClick={handlePublishNow} disabled={isPending}>
@@ -308,9 +283,7 @@ export function CreatePostForm({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="font-medium text-lg">Schedule Post</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Choose when to publish your post to {currentIntegrationName}.
-                  </p>
+                  <p className="text-muted-foreground text-sm">Choose when to publish your post to {currentIntegrationName}.</p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="schedule-time">Schedule for:</Label>
@@ -324,11 +297,7 @@ export function CreatePostForm({
                   />
                 </div>
                 <div className="flex justify-end gap-2">
-                  <Button
-                    variant="ghost"
-                    onClick={() => setIsSchedulePopoverOpen(false)}
-                    disabled={isPending}
-                  >
+                  <Button variant="ghost" onClick={() => setIsSchedulePopoverOpen(false)} disabled={isPending}>
                     Cancel
                   </Button>
                   <Button onClick={handleSchedulePost} disabled={isPending || !scheduledDateTime}>

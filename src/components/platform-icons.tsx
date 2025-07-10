@@ -1,11 +1,5 @@
 import type { Platform } from "@/database/schema/integrations"
-import {
-  FacebookIcon,
-  LinkedInIcon,
-  RedditIcon,
-  TikTokIcon,
-  XIcon
-} from "@daveyplate/better-auth-ui"
+import { FacebookIcon, LinkedInIcon, RedditIcon, TikTokIcon, XIcon } from "@daveyplate/better-auth-ui"
 import { InstagramIcon, YoutubeIcon } from "lucide-react"
 
 export const platformIcons: Record<Platform, React.ReactNode> = {

@@ -17,16 +17,10 @@ export function Header() {
           <nav className="flex items-center gap-4 border-r pr-4">
             {session.data?.user ? (
               <>
-                <Link
-                  to="/app/write"
-                  className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-                >
+                <Link to="/app/write" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Write
                 </Link>
-                <Link
-                  to="/app"
-                  className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground"
-                >
+                <Link to="/app" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Platforms
                 </Link>
               </>
