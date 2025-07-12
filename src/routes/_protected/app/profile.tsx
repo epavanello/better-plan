@@ -79,7 +79,7 @@ function RouteComponent() {
     return (
       <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
         <div className="space-y-2">
-          <h1 className="font-bold text-2xl">AI Profile</h1>
+          <h1 className="font-bold text-2xl">Context</h1>
           <p className="text-muted-foreground">Loading your profile...</p>
         </div>
       </div>
@@ -89,7 +89,7 @@ function RouteComponent() {
   return (
     <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
       <div className="space-y-2">
-        <h1 className="font-bold text-2xl">AI Profile</h1>
+        <h1 className="font-bold text-2xl">Context</h1>
         <p className="text-muted-foreground">Configure your AI assistant to generate content that matches your voice and style.</p>
       </div>
 
