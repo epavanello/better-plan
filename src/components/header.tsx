@@ -24,7 +24,7 @@ export function Header() {
                   Platforms
                 </Link>
                 <Link to="/app/profile" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
-                  AI Profile
+                  Context
                 </Link>
               </>
             ) : (
