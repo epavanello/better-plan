@@ -320,8 +320,6 @@ export function CreatePostForm({
     return now.toISOString().slice(0, 16)
   }
 
-  console.log(platformInfo?.requiredFields)
-
   const renderAdditionalFields = () => {
     if (!platformInfo?.requiredFields || platformInfo.requiredFields.length === 0) {
       return null
