@@ -65,7 +65,7 @@ export class AiService {
         system: systemPrompt,
         prompt: options.prompt,
         maxTokens: options.maxTokens || this.config.maxContextWindow,
-        temperature: options.temperature || 0.7
+        temperature: options.temperature ?? 0.7
       })
 
       // Track usage if SaaS
@@ -195,12 +195,10 @@ export class AiService {
       if (context?.profession) systemPrompt += `\n- Profession: ${context.profession}`
       if (context?.industry) systemPrompt += `\n- Industry: ${context.industry ?? ""}`
       if (context?.targetAudience) systemPrompt += `\n- Target Audience: ${context.targetAudience}`
-      
+
       // Use overrides or fall back to context
       const writingStyle = overrides.styleOverride || context?.writingStyle
       const toneOfVoice = overrides.toneOverride || context?.toneOfVoice
-      const useEmojis = overrides.useEmojisOverride !== undefined ? overrides.useEmojisOverride : context?.useEmojis
-      const useHashtags = overrides.useHashtagsOverride !== undefined ? overrides.useHashtagsOverride : context?.useHashtags
       const customInstructions = overrides.customInstructionsOverride || context?.customInstructions
       const postLength = overrides.lengthOverride || context?.defaultPostLength
 
@@ -209,7 +207,7 @@ export class AiService {
       if (postLength) {
         const lengthMap = {
           short: "1-2 sentences",
-          medium: "3-5 sentences", 
+          medium: "3-5 sentences",
           long: "6+ sentences"
         }
         systemPrompt += `\n- Preferred Length: ${lengthMap[postLength as keyof typeof lengthMap] || postLength}`
@@ -247,10 +245,14 @@ export class AiService {
 
     if (finalUseEmojis) {
       systemPrompt += "\n- Use emojis appropriately"
+    } else {
+      systemPrompt += "\n- Do not use emojis"
     }
 
     if (finalUseHashtags) {
       systemPrompt += "\n- Include relevant hashtags when appropriate"
+    } else {
+      systemPrompt += "\n- Do not include hashtags"
     }
 
     return systemPrompt
@@ -342,5 +344,5 @@ export const generateContentSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
   integrationId: z.string().min(1, "Integration ID is required"),
   maxTokens: z.number().optional(),
-  temperature: z.number().min(0).max(2).optional()
+  temperature: z.number().min(0).max(1).optional()
 })
