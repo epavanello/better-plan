@@ -8,7 +8,7 @@ import type { InsertUserContext } from "@/database/schema"
 import { getUserContext, updateUserContext } from "@/functions/ai"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { useState, useEffect } from "react"
+import { useEffect, useState } from "react"
 import { toast } from "sonner"
 
 export const Route = createFileRoute("/_protected/app/profile")({

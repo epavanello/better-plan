@@ -129,7 +129,36 @@ export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
       return { message: "No new posts to import." }
     }
 
-    const postToUpsert = recentPosts.map((p) => ({
+    // Get existing posts for this integration to check for duplicates
+    const existingPosts = await db
+      .select({
+        content: posts.content,
+        postUrl: posts.postUrl
+      })
+      .from(posts)
+      .where(and(
+        eq(posts.integrationId, integration.id),
+        eq(posts.userId, session.user.id),
+        eq(posts.status, "posted")
+      ))
+
+    // Create a set of existing content and URLs for fast lookup
+    const existingContentSet = new Set(existingPosts.map(p => p.content))
+    const existingUrlSet = new Set(existingPosts.map(p => p.postUrl).filter(Boolean))
+
+    // Filter out posts that already exist (by content or URL)
+    const newPosts = recentPosts.filter(post => {
+      const isDuplicateContent = existingContentSet.has(post.content)
+      const isDuplicateUrl = post.postUrl && existingUrlSet.has(post.postUrl)
+
+      return !isDuplicateContent && !isDuplicateUrl
+    })
+
+    if (newPosts.length === 0) {
+      return { message: "No new posts to import. All recent posts already exist in the system." }
+    }
+
+    const postToUpsert = newPosts.map((p) => ({
       ...p,
       integrationId: integration.id,
       userId: session.user.id
@@ -154,5 +183,5 @@ export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
         }
       })
 
-    return { message: `${recentPosts.length} posts imported successfully.` }
+    return { message: `${newPosts.length} new posts imported successfully. ${recentPosts.length - newPosts.length} duplicates were skipped.` }
   })
