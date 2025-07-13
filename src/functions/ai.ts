@@ -1,10 +1,10 @@
+import { db } from "@/database/db"
+import { insertUserContextSchema, userContext } from "@/database/schema"
 import { getSessionOrThrow } from "@/lib/auth"
 import { aiService } from "@/lib/server/ai-service"
 import { createServerFn } from "@tanstack/react-start"
-import { z } from "zod"
-import { db } from "@/database/db"
-import { userContext, type UserContext, type InsertUserContext, insertUserContextSchema } from "@/database/schema"
 import { eq } from "drizzle-orm"
+import { z } from "zod"
 
 const generateContentSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
@@ -83,7 +83,7 @@ export const getUserContext = createServerFn({
     .limit(1)
     .then((rows) => rows[0])
 
-  return context || null
+  return context ?? {}
 })
 
 export const updateUserContext = createServerFn({
@@ -133,5 +133,4 @@ export const updateUserContext = createServerFn({
       .returning()
 
     return inserted[0]
-
   })
