@@ -6,20 +6,26 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import type { Platform } from "@/database/schema"
 import { checkAiAccess, generateAiContent } from "@/functions/ai"
+import { createDestinationFromInput, getRecentDestinations } from "@/functions/posts"
+import type { PlatformInfo, PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { CalendarClock, ChevronDown, ChevronUp, Loader2, Lock, Rocket, RotateCcw, Sparkles, X } from "lucide-react"
+import { CalendarClock, ChevronDown, ChevronUp, HelpCircle, Loader2, Lock, MapPin, Rocket, RotateCcw, Sparkles, X } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
 interface CreatePostFormProps {
   selectedIntegrationId: string | undefined
   currentIntegrationName?: string
+  currentPlatform?: Platform
+  platformInfo?: PlatformInfo
   isPending: boolean
   onCreatePost: (data: {
     integrationId: string
     content: string
     scheduledAt?: Date
+    destination?: PostDestination
   }) => void
   onClear: () => void
   onValidationError: (message: string) => void
@@ -47,6 +53,8 @@ interface AiTuningParameters {
 export function CreatePostForm({
   selectedIntegrationId,
   currentIntegrationName,
+  currentPlatform,
+  platformInfo,
   isPending,
   onCreatePost,
   onClear,
@@ -60,6 +68,9 @@ export function CreatePostForm({
   const [showAiInput, setShowAiInput] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [showGenerationHistory, setShowGenerationHistory] = useState(false)
+  const [selectedDestination, setSelectedDestination] = useState<PostDestination | undefined>(undefined)
+  const [customDestination, setCustomDestination] = useState("")
+  const [showCustomDestination, setShowCustomDestination] = useState(false)
 
   // AI tuning parameters
   const [aiParameters, setAiParameters] = useState<AiTuningParameters>({
@@ -69,6 +80,14 @@ export function CreatePostForm({
 
   // Generation history
   const [generationHistory, setGenerationHistory] = useState<GenerationHistory[]>([])
+
+  // Query for recent destinations
+  const { data: recentDestinations, isLoading: isLoadingDestinations } = useQuery({
+    queryKey: ["recent-destinations", currentPlatform],
+    queryFn: () => getRecentDestinations({ data: { platform: currentPlatform!, limit: 5 } }),
+    enabled: !!currentPlatform && !!platformInfo?.supportsDestinations && !!selectedIntegrationId,
+    staleTime: 5 * 60 * 1000 // 5 minutes
+  })
 
   // Always check AI access (for displaying appropriate messages)
   const { data: aiAccess, isLoading: isCheckingAiAccess } = useQuery({
@@ -172,11 +191,16 @@ export function CreatePostForm({
       onValidationError("Please enter some content.")
       return
     }
+    if (platformInfo?.destinationRequired && !selectedDestination) {
+      onValidationError("Please select a destination.")
+      return
+    }
 
     onCreatePost({
       integrationId: selectedIntegrationId,
       content,
-      scheduledAt: undefined
+      scheduledAt: undefined,
+      destination: selectedDestination
     })
     setIsPublishPopoverOpen(false)
   }
@@ -188,6 +212,10 @@ export function CreatePostForm({
     }
     if (!content) {
       onValidationError("Please enter some content.")
+      return
+    }
+    if (platformInfo?.destinationRequired && !selectedDestination) {
+      onValidationError("Please select a destination.")
       return
     }
     if (!scheduledDateTime) {
@@ -203,7 +231,8 @@ export function CreatePostForm({
     onCreatePost({
       integrationId: selectedIntegrationId,
       content,
-      scheduledAt: scheduledDate
+      scheduledAt: scheduledDate,
+      destination: selectedDestination
     })
     setIsSchedulePopoverOpen(false)
   }
@@ -212,7 +241,48 @@ export function CreatePostForm({
     setContent("")
     setAiPrompt("")
     setScheduledDateTime("")
+    setSelectedDestination(undefined)
+    setCustomDestination("")
+    setShowCustomDestination(false)
     onClear()
+  }
+
+  const handleCustomDestination = () => {
+    if (!customDestination.trim()) {
+      onValidationError("Please enter a destination.")
+      return
+    }
+    if (!currentPlatform) {
+      onValidationError("Please select a platform first.")
+      return
+    }
+    if (!selectedIntegrationId) {
+      onValidationError("Please select an integration first.")
+      return
+    }
+
+    // Use the backend function to create destination with platform-specific logic
+    createDestinationFromInput({
+      data: {
+        platform: currentPlatform,
+        input: customDestination,
+        integrationId: selectedIntegrationId
+      }
+    })
+      .then((destination) => {
+        setSelectedDestination(destination)
+        setShowCustomDestination(false)
+        setCustomDestination("")
+      })
+      .catch((error) => {
+        onValidationError(error.message || "Failed to create destination")
+      })
+  }
+
+  const handleDestinationSelect = (destination: PostDestination) => {
+    setSelectedDestination(destination)
+    setShowCustomDestination(false)
+    setCustomDestination("")
   }
 
   const getMinDateTime = () => {
@@ -221,7 +291,7 @@ export function CreatePostForm({
     return now.toISOString().slice(0, 16)
   }
 
-  const canSubmit = selectedIntegrationId && content && !isPending
+  const canSubmit = selectedIntegrationId && content && !isPending && (!platformInfo?.destinationRequired || selectedDestination)
   const isAiAvailable = aiAccess?.canAccess
   const aiUnavailableReason = aiAccess?.reason
 
@@ -575,6 +645,101 @@ export function CreatePostForm({
         {/* Main Content Textarea */}
         <Textarea placeholder="What's on your mind?" value={content} onChange={(e) => setContent(e.target.value)} disabled={isGenerating} />
 
+        {/* Destination Selection - Only show if platform supports destinations */}
+        {platformInfo?.supportsDestinations && (
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <MapPin className="h-4 w-4" />
+              <Label className="font-medium text-sm">
+                Destination
+                {platformInfo.destinationRequired && <span className="ml-1 text-red-500">*</span>}
+              </Label>
+              {platformInfo.destinationHelpText && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <HelpCircle className="h-4 w-4 cursor-help text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">{platformInfo.destinationHelpText}</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+
+            {/* Selected Destination Display */}
+            {selectedDestination && (
+              <div className="flex items-center gap-2 rounded-lg bg-muted p-2">
+                <MapPin className="h-4 w-4 text-muted-foreground" />
+                <div className="flex-1">
+                  <div className="font-medium text-sm">{selectedDestination.name}</div>
+                  {selectedDestination.description && (
+                    <div className="text-muted-foreground text-xs">{selectedDestination.description}</div>
+                  )}
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedDestination(undefined)} className="h-6 w-6 p-0">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
+
+            {/* Destination Selection */}
+            {!selectedDestination && (
+              <div className="space-y-2">
+                {/* Recent Destinations */}
+                {recentDestinations && recentDestinations.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm">Recent Destinations</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {recentDestinations.map((dest) => (
+                        <Button
+                          key={dest.id}
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDestinationSelect(dest)}
+                          className="h-8 text-xs"
+                        >
+                          <MapPin className="mr-1 h-3 w-3" />
+                          {dest.name}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Custom Destination Input */}
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowCustomDestination(!showCustomDestination)}
+                    className="w-full"
+                  >
+                    {showCustomDestination ? "Cancel" : "Add Custom Destination"}
+                  </Button>
+
+                  {showCustomDestination && (
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder={platformInfo.destinationPlaceholder || "Enter destination..."}
+                        value={customDestination}
+                        onChange={(e) => setCustomDestination(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button type="button" onClick={handleCustomDestination} disabled={!customDestination.trim()} size="sm">
+                        Add
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex justify-end gap-2">
           <Button variant="ghost" onClick={handleClear} disabled={isPending || isGenerating}>
@@ -592,7 +757,14 @@ export function CreatePostForm({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="font-medium text-lg">Publish Post</h3>
-                  <p className="text-muted-foreground text-sm">Your post will be published immediately to {currentIntegrationName}.</p>
+                  <p className="text-muted-foreground text-sm">
+                    Your post will be published immediately to {currentIntegrationName}
+                    {selectedDestination && (
+                      <span className="mt-1 block">
+                        <strong>Destination:</strong> {selectedDestination.name}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="ghost" onClick={() => setIsPublishPopoverOpen(false)} disabled={isPending}>
@@ -616,7 +788,14 @@ export function CreatePostForm({
               <div className="space-y-4">
                 <div className="space-y-2">
                   <h3 className="font-medium text-lg">Schedule Post</h3>
-                  <p className="text-muted-foreground text-sm">Choose when to publish your post to {currentIntegrationName}.</p>
+                  <p className="text-muted-foreground text-sm">
+                    Choose when to publish your post to {currentIntegrationName}
+                    {selectedDestination && (
+                      <span className="mt-1 block">
+                        <strong>Destination:</strong> {selectedDestination.name}
+                      </span>
+                    )}
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="schedule-time">Schedule for:</Label>

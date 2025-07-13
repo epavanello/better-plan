@@ -130,6 +130,10 @@ export class PlatformFactory {
     try {
       const platformInstance = PlatformFactory.getPlatform(platform)
       return {
+        destinationRequired: platformInstance.requiresDestination(),
+        supportsDestinations: platformInstance.supportsDestinations(),
+        destinationHelpText: platformInstance.getDestinationHelpText(),
+        destinationPlaceholder: platformInstance.getDestinationPlaceholder(),
         name: platform,
         displayName: platformInstance.getDisplayName(),
         requiresSetup: platformInstance.requiresSetup(),
@@ -137,6 +141,10 @@ export class PlatformFactory {
       }
     } catch {
       return {
+        destinationRequired: false,
+        supportsDestinations: false,
+        destinationHelpText: undefined,
+        destinationPlaceholder: undefined,
         name: platform,
         displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
         requiresSetup: false,

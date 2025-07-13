@@ -15,6 +15,13 @@
       "when": 1752098426960,
       "tag": "0001_absent_the_santerians",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1752400071688,
+      "tag": "0002_dizzy_lady_mastermind",
+      "breakpoints": true
     }
   ]
 }

@@ -24,6 +24,12 @@ export const posts = sqliteTable("posts", {
   failCount: integer("fail_count").default(0),
   failReason: text("fail_reason"),
 
+  // Destination fields
+  destinationType: text("destination_type"), // e.g., "public", "community", "subreddit"
+  destinationId: text("destination_id"), // e.g., community URL, subreddit name
+  destinationName: text("destination_name"), // e.g., "Build in Public", "r/webdev"
+  destinationMetadata: text("destination_metadata"), // JSON string for additional metadata
+
   // AI-related fields
   aiGenerated: integer("ai_generated", { mode: "boolean" }).default(false),
   aiPrompt: text("ai_prompt"), // Store the original prompt used for generation
@@ -55,7 +61,41 @@ export const postsRelations = relations(posts, ({ one }) => ({
   })
 }))
 
+// Table for tracking recent post destinations
+export const postDestinations = sqliteTable("post_destinations", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => ulid()),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  platform: text("platform", { enum: ["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"] }).notNull(),
+  destinationType: text("destination_type").notNull(), // e.g., "public", "community", "subreddit"
+  destinationId: text("destination_id").notNull(), // e.g., community URL, subreddit name
+  destinationName: text("destination_name").notNull(), // e.g., "Build in Public", "r/webdev"
+  destinationMetadata: text("destination_metadata"), // JSON string for additional metadata
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }).notNull(),
+  useCount: integer("use_count").default(1).notNull(),
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull(),
+  updatedAt: integer("updated_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull()
+})
+
+export const postDestinationsRelations = relations(postDestinations, ({ one }) => ({
+  user: one(users, {
+    fields: [postDestinations.userId],
+    references: [users.id]
+  })
+}))
+
 export type Post = typeof posts.$inferSelect
 export type InsertPost = typeof posts.$inferInsert
 
+export type PostDestination = typeof postDestinations.$inferSelect
+export type InsertPostDestination = typeof postDestinations.$inferInsert
+
 export const insertPostSchema = createInsertSchema(posts)
+export const insertPostDestinationSchema = createInsertSchema(postDestinations)

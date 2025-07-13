@@ -7,10 +7,25 @@ export interface PostResult {
   error?: string
 }
 
+export interface PostDestination {
+  type: string // "public", "community", "subreddit", etc.
+  id: string // URL, subreddit name, etc.
+  name: string // Display name
+  metadata?: Record<string, unknown> // Additional platform-specific data
+  description?: string // Optional description or help text
+}
+
+export interface PostDestinationSearchResult {
+  destinations: PostDestination[]
+  hasMore: boolean
+  nextCursor?: string
+}
+
 export interface PostData {
   id: string
   content: string
   userId: string
+  destination?: PostDestination
   integration: {
     id: string
     platform: Platform
@@ -25,6 +40,10 @@ export interface PlatformInfo {
   displayName: string
   requiresSetup: boolean
   isImplemented: boolean
+  supportsDestinations: boolean
+  destinationRequired: boolean
+  destinationHelpText?: string
+  destinationPlaceholder?: string
 }
 
 export abstract class BaseSocialPlatform {
@@ -40,6 +59,59 @@ export abstract class BaseSocialPlatform {
 
   supportsFetchingRecentPosts(): boolean {
     return false
+  }
+
+  supportsDestinations(): boolean {
+    return false
+  }
+
+  requiresDestination(): boolean {
+    return false
+  }
+
+  getDestinationHelpText(): string | undefined {
+    return undefined
+  }
+
+  getDestinationPlaceholder(): string | undefined {
+    return undefined
+  }
+
+  // Get default destinations for this platform
+  getDefaultDestinations(): PostDestination[] {
+    return []
+  }
+
+  // Search for destinations (e.g., subreddits, communities)
+  async searchDestinations(
+    query: string,
+    accessToken: string,
+    effectiveCredentials: { clientId: string; clientSecret: string },
+    cursor?: string
+  ): Promise<PostDestinationSearchResult> {
+    return {
+      destinations: [],
+      hasMore: false
+    }
+  }
+
+  // Validate a destination before posting
+  async validateDestination(
+    destination: PostDestination,
+    accessToken: string,
+    effectiveCredentials: { clientId: string; clientSecret: string }
+  ): Promise<boolean> {
+    return true
+  }
+
+  // Create a destination from user input (override per platform)
+  async createDestinationFromInput(input: string, _accessToken: string | null, _userId: string): Promise<PostDestination> {
+    return {
+      type: "custom",
+      id: input,
+      name: input,
+      description: "Custom destination"
+    }
   }
 
   async fetchRecentPosts(
@@ -63,6 +135,19 @@ export abstract class BaseSocialPlatform {
 
   isImplemented(): boolean {
     return true
+  }
+
+  getPlatformInfo(): PlatformInfo {
+    return {
+      name: this.name,
+      displayName: this.getDisplayName(),
+      requiresSetup: this.requiresSetup(),
+      isImplemented: this.isImplemented(),
+      supportsDestinations: this.supportsDestinations(),
+      destinationRequired: this.requiresDestination(),
+      destinationHelpText: this.getDestinationHelpText(),
+      destinationPlaceholder: this.getDestinationPlaceholder()
+    }
   }
 
   // Override per implementare l'autorizzazione specifica della piattaforma

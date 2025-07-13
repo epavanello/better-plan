@@ -4,7 +4,9 @@ import { PostsList } from "@/components/posts-list"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getIntegrations } from "@/functions/integrations"
+import { getPlatformInfo } from "@/functions/platforms"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
+import type { PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
 import { Download } from "lucide-react"
@@ -34,6 +36,14 @@ function RouteComponent() {
   })
 
   const currentIntegration = useMemo(() => integrations.find((i) => i.id === selectedIntegrationId), [integrations, selectedIntegrationId])
+
+  // Get platform information
+  const { data: platformInfo } = useQuery({
+    queryKey: ["platform-info", currentIntegration?.platform],
+    queryFn: () => (currentIntegration ? getPlatformInfo({ data: currentIntegration.platform }) : undefined),
+    enabled: !!currentIntegration?.platform
+  })
+
   const platformSupportsFetching = useMemo(() => {
     return currentIntegration?.supportsFetchingRecentPosts ?? false
   }, [currentIntegration])
@@ -84,12 +94,14 @@ function RouteComponent() {
     integrationId: string
     content: string
     scheduledAt?: Date
+    destination?: PostDestination
   }) => {
     create({
       data: {
         integrationId: data.integrationId,
         content: data.content,
-        scheduledAt: data.scheduledAt
+        scheduledAt: data.scheduledAt,
+        destination: data.destination
       }
     })
   }
@@ -137,6 +149,8 @@ function RouteComponent() {
           <CreatePostForm
             selectedIntegrationId={selectedIntegrationId}
             currentIntegrationName={currentIntegration?.platformAccountName}
+            currentPlatform={currentIntegration?.platform}
+            platformInfo={platformInfo}
             isPending={isPending}
             onCreatePost={handleCreatePost}
             onClear={handleClear}

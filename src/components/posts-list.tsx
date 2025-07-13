@@ -38,6 +38,12 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
               <div className="flex items-center gap-2">
                 {platformIcons[post.integration.platform]}
                 {post.integration.platformAccountName}
+                {post.destinationName && (
+                  <>
+                    {" → "}
+                    <span className="font-medium">{post.destinationName}</span>
+                  </>
+                )}
                 {" - "}
                 <span className="capitalize">{post.status}</span>
                 {post.status === "scheduled" && post.scheduledAt && (
