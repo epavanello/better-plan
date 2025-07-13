@@ -16,6 +16,14 @@ COPY . .
 # Ensure the migrations directory exists, even if no migrations have been generated yet
 RUN mkdir -p migrations
 
+# Accept build arguments for VITE variables
+ARG VITE_PLAUSIBLE_DOMAIN=""
+ARG VITE_PLAUSIBLE_SCRIPT_URL=""
+
+# Set environment variables for build time
+ENV VITE_PLAUSIBLE_DOMAIN=${VITE_PLAUSIBLE_DOMAIN}
+ENV VITE_PLAUSIBLE_SCRIPT_URL=${VITE_PLAUSIBLE_SCRIPT_URL}
+
 # Set NODE_ENV to production for consistent builds
 ENV NODE_ENV=production
 

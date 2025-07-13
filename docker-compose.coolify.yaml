@@ -7,6 +7,9 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        VITE_PLAUSIBLE_DOMAIN: ${VITE_PLAUSIBLE_DOMAIN:-}
+        VITE_PLAUSIBLE_SCRIPT_URL: ${VITE_PLAUSIBLE_SCRIPT_URL:-}
     environment:
     # --- Turso database connection (set in Coolify dashboard)
     - DATABASE_URL=${DATABASE_URL}
@@ -27,6 +30,6 @@ services:
     - AI_MAX_CONTEXT_WINDOW=${AI_MAX_CONTEXT_WINDOW:-4000}
     - AI_MAX_GENERATIONS_PER_MONTH=${AI_MAX_GENERATIONS_PER_MONTH:-50}
     - AI_MODEL=${AI_MODEL:-gpt-4o-mini}
-    # --- Plausible Analytics
-    - VITE_PLAUSIBLE_DOMAIN=${VITE_PLAUSIBLE_DOMAIN}
-    - VITE_PLAUSIBLE_SCRIPT_URL=${VITE_PLAUSIBLE_SCRIPT_URL}
+    # --- Plausible Analytics (also passed as build args above)
+    - VITE_PLAUSIBLE_DOMAIN=${VITE_PLAUSIBLE_DOMAIN:-}
+    - VITE_PLAUSIBLE_SCRIPT_URL=${VITE_PLAUSIBLE_SCRIPT_URL:-}
