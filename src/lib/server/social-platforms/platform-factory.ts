@@ -106,22 +106,7 @@ export class PlatformFactory {
 
   static getAllPlatformInfo(): PlatformInfo[] {
     return PlatformFactory.getAllPlatforms().map((platform) => {
-      try {
-        const platformInstance = PlatformFactory.getPlatform(platform)
-        return {
-          name: platform,
-          displayName: platformInstance.getDisplayName(),
-          requiresSetup: platformInstance.requiresSetup(),
-          isImplemented: platformInstance.isImplemented()
-        }
-      } catch {
-        return {
-          name: platform,
-          displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
-          requiresSetup: false,
-          isImplemented: false
-        }
-      }
+      return PlatformFactory.getPlatformInfo(platform)
     })
   }
 

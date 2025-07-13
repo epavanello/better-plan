@@ -11,7 +11,8 @@ export interface PostDestination {
   type: string // "public", "community", "subreddit", etc.
   id: string // URL, subreddit name, etc.
   name: string // Display name
-  metadata?: Record<string, unknown> // Additional platform-specific data
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  metadata?: Record<string, any> // Additional platform-specific data
   description?: string // Optional description or help text
 }
 
