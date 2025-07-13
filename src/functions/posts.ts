@@ -22,7 +22,8 @@ const createPostSchema = z.object({
       metadata: z.record(z.any()).optional(),
       description: z.string().optional()
     })
-    .optional()
+    .optional(),
+  additionalFields: z.record(z.string()).optional()
 })
 
 export const createPost = createServerFn({ method: "POST" })
@@ -79,6 +80,7 @@ export const createPost = createServerFn({ method: "POST" })
           content: post.content,
           userId: post.userId,
           destination: data.destination,
+          additionalFields: data.additionalFields,
           integration: {
             id: integration.id,
             platform: integration.platform,

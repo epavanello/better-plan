@@ -95,13 +95,15 @@ function RouteComponent() {
     content: string
     scheduledAt?: Date
     destination?: PostDestination
+    additionalFields?: Record<string, string>
   }) => {
     create({
       data: {
         integrationId: data.integrationId,
         content: data.content,
         scheduledAt: data.scheduledAt,
-        destination: data.destination
+        destination: data.destination,
+        additionalFields: data.additionalFields
       }
     })
   }

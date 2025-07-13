@@ -26,6 +26,7 @@ interface CreatePostFormProps {
     content: string
     scheduledAt?: Date
     destination?: PostDestination
+    additionalFields?: Record<string, string>
   }) => void
   onClear: () => void
   onValidationError: (message: string) => void
@@ -71,6 +72,7 @@ export function CreatePostForm({
   const [selectedDestination, setSelectedDestination] = useState<PostDestination | undefined>(undefined)
   const [customDestination, setCustomDestination] = useState("")
   const [showCustomDestination, setShowCustomDestination] = useState(false)
+  const [additionalFields, setAdditionalFields] = useState<Record<string, string>>({})
 
   // AI tuning parameters
   const [aiParameters, setAiParameters] = useState<AiTuningParameters>({
@@ -196,11 +198,22 @@ export function CreatePostForm({
       return
     }
 
+    // Validate required fields
+    if (platformInfo?.requiredFields) {
+      for (const field of platformInfo.requiredFields) {
+        if (field.required && !additionalFields[field.key]) {
+          onValidationError(`${field.label} is required.`)
+          return
+        }
+      }
+    }
+
     onCreatePost({
       integrationId: selectedIntegrationId,
       content,
       scheduledAt: undefined,
-      destination: selectedDestination
+      destination: selectedDestination,
+      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
     })
     setIsPublishPopoverOpen(false)
   }
@@ -228,11 +241,22 @@ export function CreatePostForm({
       return
     }
 
+    // Validate required fields
+    if (platformInfo?.requiredFields) {
+      for (const field of platformInfo.requiredFields) {
+        if (field.required && !additionalFields[field.key]) {
+          onValidationError(`${field.label} is required.`)
+          return
+        }
+      }
+    }
+
     onCreatePost({
       integrationId: selectedIntegrationId,
       content,
       scheduledAt: scheduledDate,
-      destination: selectedDestination
+      destination: selectedDestination,
+      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
     })
     setIsSchedulePopoverOpen(false)
   }
@@ -244,6 +268,7 @@ export function CreatePostForm({
     setSelectedDestination(undefined)
     setCustomDestination("")
     setShowCustomDestination(false)
+    setAdditionalFields({})
     onClear()
   }
 
@@ -285,10 +310,68 @@ export function CreatePostForm({
     setCustomDestination("")
   }
 
+  const handleAdditionalFieldChange = (key: string, value: string) => {
+    setAdditionalFields((prev) => ({ ...prev, [key]: value }))
+  }
+
   const getMinDateTime = () => {
     const now = new Date()
     now.setMinutes(now.getMinutes() + 5)
     return now.toISOString().slice(0, 16)
+  }
+
+  console.log(platformInfo?.requiredFields)
+
+  const renderAdditionalFields = () => {
+    if (!platformInfo?.requiredFields || platformInfo.requiredFields.length === 0) {
+      return null
+    }
+
+    return (
+      <div className="space-y-4">
+        {platformInfo.requiredFields.map((field) => (
+          <div key={field.key} className="space-y-2">
+            <Label htmlFor={field.key} className="font-medium text-sm">
+              {field.label}
+              {field.required && <span className="ml-1 text-red-500">*</span>}
+            </Label>
+            {field.type === "textarea" ? (
+              <Textarea
+                id={field.key}
+                value={additionalFields[field.key] || ""}
+                onChange={(e) => handleAdditionalFieldChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+                maxLength={field.maxLength}
+                className="min-h-[80px]"
+              />
+            ) : field.type === "select" && field.options ? (
+              <Select value={additionalFields[field.key] || ""} onValueChange={(value) => handleAdditionalFieldChange(field.key, value)}>
+                <SelectTrigger>
+                  <SelectValue placeholder={field.placeholder} />
+                </SelectTrigger>
+                <SelectContent>
+                  {field.options.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            ) : (
+              <Input
+                id={field.key}
+                type={field.type === "number" ? "number" : "text"}
+                value={additionalFields[field.key] || ""}
+                onChange={(e) => handleAdditionalFieldChange(field.key, e.target.value)}
+                placeholder={field.placeholder}
+                maxLength={field.maxLength}
+              />
+            )}
+            {field.helpText && <p className="text-gray-600 text-sm dark:text-gray-400">{field.helpText}</p>}
+          </div>
+        ))}
+      </div>
+    )
   }
 
   const canSubmit = selectedIntegrationId && content && !isPending && (!platformInfo?.destinationRequired || selectedDestination)
@@ -739,6 +822,9 @@ export function CreatePostForm({
             )}
           </div>
         )}
+
+        {/* Additional Fields */}
+        {renderAdditionalFields()}
 
         {/* Action Buttons */}
         <div className="flex justify-end gap-2">

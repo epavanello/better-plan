@@ -22,11 +22,23 @@ export interface PostDestinationSearchResult {
   nextCursor?: string
 }
 
+export interface RequiredField {
+  key: string
+  label: string
+  type: "text" | "textarea" | "select" | "number"
+  placeholder?: string
+  maxLength?: number
+  required: boolean
+  options?: { value: string; label: string }[]
+  helpText?: string
+}
+
 export interface PostData {
   id: string
   content: string
   userId: string
   destination?: PostDestination
+  additionalFields?: Record<string, string> // For platform-specific fields like Reddit title
   integration: {
     id: string
     platform: Platform
@@ -45,6 +57,7 @@ export interface PlatformInfo {
   destinationRequired: boolean
   destinationHelpText?: string
   destinationPlaceholder?: string
+  requiredFields?: RequiredField[] // Additional fields required by this platform
 }
 
 export abstract class BaseSocialPlatform {
@@ -80,6 +93,10 @@ export abstract class BaseSocialPlatform {
 
   // Get default destinations for this platform
   getDefaultDestinations(): PostDestination[] {
+    return []
+  }
+
+  getRequiredFields(): RequiredField[] {
     return []
   }
 
@@ -147,7 +164,8 @@ export abstract class BaseSocialPlatform {
       supportsDestinations: this.supportsDestinations(),
       destinationRequired: this.requiresDestination(),
       destinationHelpText: this.getDestinationHelpText(),
-      destinationPlaceholder: this.getDestinationPlaceholder()
+      destinationPlaceholder: this.getDestinationPlaceholder(),
+      requiredFields: this.getRequiredFields()
     }
   }
 

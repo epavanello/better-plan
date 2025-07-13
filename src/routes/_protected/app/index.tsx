@@ -1,6 +1,6 @@
 import { platformIcons } from "@/components/platform-icons"
+import { PlatformSetup } from "@/components/platform-setup"
 import { Button } from "@/components/ui/button"
-import { XAppSetup } from "@/components/x-app-setup"
 import type { Platform } from "@/database/schema/integrations"
 import { deleteIntegration, deleteUserAppCredentials, getIntegrations, getUserPlatformStatus } from "@/functions/integrations"
 import { getAllPlatformInfo, startPlatformAuthorization } from "@/functions/platforms"
@@ -106,22 +106,22 @@ function IntegrationsComponent() {
 
   const connectedPlatforms = integrations.map((i) => i.platform)
 
-  // Renderizza la schermata di setup se necessario (per ora solo X)
-  if (setupPlatform === "x" && platformSetups.x?.redirectUrl) {
-    return (
-      <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
-        <div className="space-y-2">
-          <h1 className="font-bold text-2xl">Configure X (Twitter) App</h1>
-          <p className="text-muted-foreground">Configure your X app credentials to connect your account.</p>
-        </div>
+  // Renderizza la schermata di setup se necessario (generico per tutte le piattaforme)
+  if (setupPlatform) {
+    const platformInfo = platformsInfo.find((p) => p.name === setupPlatform)
+    const setupInfo = platformSetups[setupPlatform]
 
-        <XAppSetup onComplete={handleSetupComplete} redirectUrl={platformSetups.x.redirectUrl} />
-
-        <Button variant="outline" onClick={() => setSetupPlatform(null)}>
-          Cancel
-        </Button>
-      </div>
-    )
+    if (platformInfo && setupInfo) {
+      return (
+        <PlatformSetup
+          platform={setupPlatform}
+          platformDisplayName={platformInfo.displayName}
+          redirectUrl={setupInfo.redirectUrl || null}
+          onComplete={handleSetupComplete}
+          onCancel={() => setSetupPlatform(null)}
+        />
+      )
+    }
   }
 
   return (

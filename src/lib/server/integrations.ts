@@ -10,6 +10,11 @@ export const getSystemCredentials = async (platform: Platform) => {
         clientId: envConfig.X_CLIENT_ID,
         clientSecret: envConfig.X_CLIENT_SECRET
       }
+    case "reddit":
+      return {
+        clientId: envConfig.REDDIT_CLIENT_ID,
+        clientSecret: envConfig.REDDIT_CLIENT_SECRET
+      }
     default:
       return null
   }
@@ -65,6 +70,36 @@ export const validatePlatformCredentials = async (
 
         return { valid: true }
       }
+      case "reddit": {
+        // For Reddit, we validate by making a request to the OAuth endpoint
+        const authUrl = new URL("https://www.reddit.com/api/v1/authorize")
+        authUrl.searchParams.set("client_id", clientId)
+        authUrl.searchParams.set("response_type", "code")
+        authUrl.searchParams.set("state", "test")
+        authUrl.searchParams.set("redirect_uri", `${envConfig.APP_URL}/api/integrations/reddit/callback`)
+        authUrl.searchParams.set("duration", "permanent")
+        authUrl.searchParams.set("scope", "submit,read,identity")
+
+        // Test if the credentials are valid by making a basic request
+        const response = await fetch("https://www.reddit.com/api/v1/access_token", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "BetterPlan/1.0",
+            Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString("base64")}`
+          },
+          body: new URLSearchParams({
+            grant_type: "client_credentials"
+          }).toString()
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Reddit validation failed: ${response.status} ${errorText}`)
+        }
+
+        return { valid: true }
+      }
       default:
         return { valid: false, error: "Platform not supported for validation" }
     }
@@ -87,6 +122,12 @@ export const getPlatformCredentialsInfo = async (platform: Platform) => {
         requiresUserCredentials: !hasSystemCredentials,
         hasSystemCredentials,
         redirectUrl: `${envConfig.APP_URL}/api/integrations/x/callback`
+      }
+    case "reddit":
+      return {
+        requiresUserCredentials: !hasSystemCredentials,
+        hasSystemCredentials,
+        redirectUrl: `${envConfig.APP_URL}/api/integrations/reddit/callback`
       }
     default:
       return {

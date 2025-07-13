@@ -4,6 +4,8 @@ const envSchema = z.object({
   APP_URL: z.string().url(),
   X_CLIENT_ID: z.string().optional(),
   X_CLIENT_SECRET: z.string().optional(),
+  REDDIT_CLIENT_ID: z.string().optional(),
+  REDDIT_CLIENT_SECRET: z.string().optional(),
   BETTER_AUTH_SECRET: z.string().min(1),
   NODE_ENV: z.enum(["development", "production"]).default("development"),
   DISABLE_SIGNUP: z

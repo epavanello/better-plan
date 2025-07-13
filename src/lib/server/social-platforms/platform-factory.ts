@@ -1,6 +1,7 @@
 import type { Platform } from "@/database/schema/integrations"
 import { BaseSocialPlatform, type PlatformInfo } from "./base-platform"
 import { LinkedInPlatform } from "./linkedin-platform"
+import { RedditPlatform } from "./reddit-platform"
 import { XPlatform } from "./x-platform"
 
 type PlatformConstructor = new () => BaseSocialPlatform
@@ -31,11 +32,7 @@ class NotImplementedPlatform extends BaseSocialPlatform {
 // Registry delle piattaforme supportate
 const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new (name: Platform): BaseSocialPlatform }> = {
   x: XPlatform,
-  reddit: class extends NotImplementedPlatform {
-    constructor() {
-      super("reddit")
-    }
-  },
+  reddit: RedditPlatform,
   instagram: class extends NotImplementedPlatform {
     constructor() {
       super("instagram")
@@ -122,7 +119,8 @@ export class PlatformFactory {
         name: platform,
         displayName: platformInstance.getDisplayName(),
         requiresSetup: platformInstance.requiresSetup(),
-        isImplemented: platformInstance.isImplemented()
+        isImplemented: platformInstance.isImplemented(),
+        requiredFields: platformInstance.getRequiredFields()
       }
     } catch {
       return {
@@ -133,7 +131,8 @@ export class PlatformFactory {
         name: platform,
         displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
         requiresSetup: false,
-        isImplemented: false
+        isImplemented: false,
+        requiredFields: []
       }
     }
   }
