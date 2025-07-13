@@ -10,7 +10,17 @@ const generateContentSchema = z.object({
   prompt: z.string().min(1, "Prompt is required"),
   integrationId: z.string().min(1, "Integration ID is required"),
   maxTokens: z.number().optional(),
-  temperature: z.number().min(0).max(2).optional()
+  temperature: z.number().min(0).max(2).optional(),
+  // New tuning parameters
+  styleOverride: z.enum(["casual", "formal", "humorous", "professional", "conversational"]).optional(),
+  toneOverride: z.enum(["friendly", "professional", "authoritative", "inspirational", "educational"]).optional(),
+  lengthOverride: z.enum(["short", "medium", "long"]).optional(),
+  useEmojisOverride: z.boolean().optional(),
+  useHashtagsOverride: z.boolean().optional(),
+  customInstructionsOverride: z.string().optional(),
+  // For iterations - previous content to improve upon
+  previousContent: z.string().optional(),
+  iterationInstruction: z.string().optional()
 })
 
 export const generateAiContent = createServerFn({
@@ -30,13 +40,21 @@ export const generateAiContent = createServerFn({
       throw new Error(accessCheck.reason || "AI access denied")
     }
 
-    // Generate content
+    // Generate content with overrides
     const result = await aiService.generateContent({
       prompt: data.prompt,
       userId: session.user.id,
       integrationId: data.integrationId,
       maxTokens: data.maxTokens,
-      temperature: data.temperature
+      temperature: data.temperature,
+      styleOverride: data.styleOverride,
+      toneOverride: data.toneOverride,
+      lengthOverride: data.lengthOverride,
+      useEmojisOverride: data.useEmojisOverride,
+      useHashtagsOverride: data.useHashtagsOverride,
+      customInstructionsOverride: data.customInstructionsOverride,
+      previousContent: data.previousContent,
+      iterationInstruction: data.iterationInstruction
     })
 
     if (!result.success) {
