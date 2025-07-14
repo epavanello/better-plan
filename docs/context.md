@@ -3,7 +3,7 @@
 ### 1. Goal & Tech Stack
 - **Objective**: MVP of a social media management tool to connect accounts, create, and schedule posts.
 - **Initial Platform**: X (Twitter).
-- **Tech Stack**: TanStack Start, Drizzle ORM (PostgreSQL), Tailwind CSS, Shadcn/ui, and `better-auth` for user authentication.
+- **Tech Stack**: TanStack Start, Drizzle ORM (SQLite/Turso), Tailwind CSS, Shadcn/ui, and `better-auth` for user authentication.
 
 ### 2. Backend & Database Structure
 - **Schema**: A Drizzle schema is defined in `integrations-schema.ts` for an `integrations` table. It's designed to store multiple platform credentials per user. For X, the `accessToken` column stores the OAuth 1.0a `accessToken` and `accessSecret` concatenated with a colon (e.g., `"token:secret"`).
