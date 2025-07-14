@@ -45,7 +45,7 @@ A modern, AI-powered social media management tool that helps you create, schedul
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/your-username/better-plan.git
+   git clone https://github.com/epavanello/better-plan.git
    cd better-plan
    ```
 
@@ -179,6 +179,14 @@ We use [Conventional Commits](https://www.conventionalcommits.org/) for automate
 - **Database** - Use Drizzle ORM for all database operations
 - **Authentication** - Use Better Auth for all auth-related features
 
+### Docker & CI/CD Development
+
+- **Docker builds** are automatically triggered on push to main/develop branches
+- **Multi-platform support** - All images support amd64 and arm64 architectures
+- **GitHub Container Registry** - Images are published to `ghcr.io/epavanello/better-plan`
+- **Security attestations** - All images include build provenance and attestations
+- **Local testing** - Use `pnpm docker:build` to test Docker builds locally
+
 ### Available Scripts
 
 ```bash
@@ -202,6 +210,8 @@ pnpm db:studio            # Database management UI
 pnpm docker:build         # Build production image
 pnpm docker:up            # Start production containers
 pnpm docker:down          # Stop containers
+pnpm dev:docker           # Start development with Docker
+pnpm dev:docker:down      # Stop development containers
 
 # Release
 pnpm release:patch        # Patch version release
@@ -211,9 +221,52 @@ pnpm release:major        # Major version release
 
 ## 🚀 Deployment
 
-### Docker Deployment
+### Using Pre-built Docker Images
 
-1. **Build the image**
+The easiest way to deploy Better Plan is using our pre-built Docker images from GitHub Container Registry.
+
+#### Available Images
+
+All images are available at `ghcr.io/epavanello/better-plan` with the following tags:
+
+- **`latest`** - Latest stable release from main branch
+- **`develop`** - Latest development build
+- **`v1.2.3`** - Specific version tags
+- **`1.2`** - Major.minor tags
+- **`1`** - Major version tags
+
+#### Quick Start with Docker
+
+```bash
+# Pull and run the latest version
+docker run -p 3000:3000 \
+  -e DATABASE_URL="file:///app/data/local.db" \
+  -e DATABASE_DIALECT="sqlite" \
+  -e BETTER_AUTH_SECRET="your-secret-key" \
+  -e APP_URL="http://localhost:3000" \
+  ghcr.io/epavanello/better-plan:latest
+
+# Or use docker-compose
+curl -O https://raw.githubusercontent.com/epavanello/better-plan/main/docker-compose.yaml
+docker-compose up -d
+```
+
+#### Production Deployment with Turso
+
+```bash
+docker run -p 3000:3000 \
+  -e DATABASE_URL="libsql://your-database.turso.io" \
+  -e DATABASE_AUTH_TOKEN="your-turso-token" \
+  -e DATABASE_DIALECT="turso" \
+  -e BETTER_AUTH_SECRET="your-secret-key" \
+  -e APP_URL="https://your-domain.com" \
+  -e OPENAI_API_KEY="sk-your-openai-key" \
+  ghcr.io/epavanello/better-plan:latest
+```
+
+### Local Docker Development
+
+1. **Build the image locally**
    ```bash
    pnpm docker:build
    ```
@@ -221,6 +274,11 @@ pnpm release:major        # Major version release
 2. **Start the services**
    ```bash
    pnpm docker:up
+   ```
+
+3. **Stop the services**
+   ```bash
+   pnpm docker:down
    ```
 
 ### Manual Deployment
@@ -235,12 +293,62 @@ pnpm release:major        # Major version release
    pnpm start
    ```
 
-### Automated Deployment
+### Automated CI/CD
 
-We use GitHub Actions for CI/CD:
-- **Docker images** are automatically built and pushed to GitHub Container Registry
-- **Releases** are created automatically based on conventional commits
-- **Multi-platform support** (amd64, arm64) for Docker images
+Our GitHub Actions workflows automatically handle:
+
+#### Docker Workflow (`.github/workflows/docker.yml`)
+- **Triggers**: Push to `main`/`develop`, pull requests, releases, manual trigger
+- **Multi-platform builds**: linux/amd64, linux/arm64
+- **Registry**: GitHub Container Registry (`ghcr.io`)
+- **Caching**: GitHub Actions cache for faster builds
+- **Security**: Build attestations and provenance tracking
+
+#### Release Workflow (`.github/workflows/release.yml`)
+- **Automatic versioning**: Based on conventional commits
+- **Changelog generation**: From commit messages
+- **Version bumping**: Patch, minor, or major releases
+- **Release creation**: Automated GitHub releases
+- **Docker trigger**: Automatically builds Docker images for releases
+
+#### Tagging Strategy
+
+```bash
+# For release v1.2.3, these tags are created:
+ghcr.io/epavanello/better-plan:v1.2.3    # Exact version
+ghcr.io/epavanello/better-plan:1.2       # Major.minor
+ghcr.io/epavanello/better-plan:1         # Major version
+ghcr.io/epavanello/better-plan:latest    # Latest stable (main branch)
+
+# For development:
+ghcr.io/epavanello/better-plan:develop   # Development branch
+ghcr.io/epavanello/better-plan:pr-123    # Pull request builds
+```
+
+### Platform Support
+
+All Docker images support multiple architectures:
+- **linux/amd64** - Standard x86_64 servers
+- **linux/arm64** - ARM-based servers (Apple Silicon, AWS Graviton, etc.)
+
+### Environment Variables for Docker
+
+```bash
+# Required
+DATABASE_URL=file:///app/data/local.db    # SQLite path or Turso URL
+DATABASE_DIALECT=sqlite                   # sqlite or turso
+BETTER_AUTH_SECRET=your-secret-key        # Authentication secret
+APP_URL=http://localhost:3000             # Public URL
+
+# Optional (AI Features)
+OPENAI_API_KEY=sk-your-key               # OpenAI API key
+DEPLOYMENT_TYPE=self-hosted              # self-hosted or saas
+AI_MODEL=gpt-4o-mini                     # OpenAI model
+
+# Optional (Social Media)
+X_CLIENT_ID=your-twitter-id              # Twitter/X client ID
+X_CLIENT_SECRET=your-twitter-secret      # Twitter/X client secret
+```
 
 ## 📈 Roadmap
 
@@ -266,9 +374,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🆘 Support
 
-- **Issues** - Report bugs or request features via [GitHub Issues](https://github.com/your-username/better-plan/issues)
+- **Issues** - Report bugs or request features via [GitHub Issues](https://github.com/epavanello/better-plan/issues)
 - **Discussions** - Join community discussions for questions and ideas
 - **Documentation** - Check the `docs/` directory for detailed guides
+- **Docker Images** - Pre-built images available at [ghcr.io/epavanello/better-plan](https://github.com/epavanello/better-plan/pkgs/container/better-plan)
 
 ## 🙏 Acknowledgments
 
