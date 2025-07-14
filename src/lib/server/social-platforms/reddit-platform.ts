@@ -12,68 +12,11 @@ import {
   type PostResult,
   type RequiredField
 } from "./base-platform"
-
-interface RedditTokenResponse {
-  access_token: string
-  refresh_token?: string
-  token_type: string
-  expires_in: number
-  scope: string
-}
-
-interface RedditUser {
-  id: string
-  name: string
-  icon_img?: string
-  total_karma: number
-  link_karma: number
-  comment_karma: number
-}
-
-interface RedditSubreddit {
-  display_name: string
-  display_name_prefixed: string
-  title: string
-  public_description?: string
-  description?: string
-  subscribers: number
-  over18: boolean
-  subreddit_type: "public" | "private" | "restricted"
-  icon_img?: string
-}
-
-interface RedditSubmission {
-  id: string
-  title: string
-  selftext?: string
-  url?: string
-  permalink: string
-  created_utc: number
-  is_self: boolean
-  subreddit_name_prefixed: string
-  score: number
-  num_comments: number
-}
-
-interface RedditSubmissionResponse {
-  json: {
-    errors: string[][]
-    data?: {
-      things: Array<{
-        data: {
-          id: string
-          url: string
-          name: string
-        }
-      }>
-    }
-  }
-}
+import { RedditApiClient } from "./reddit/reddit-api-client"
+import { buildRedditAuthUrl, normalizeSubredditName } from "./reddit/reddit-utils"
 
 export class RedditPlatform extends BaseSocialPlatform {
-  private readonly baseUrl = "https://oauth.reddit.com"
-  private readonly authUrl = "https://www.reddit.com/api/v1/authorize"
-  private readonly tokenUrl = "https://www.reddit.com/api/v1/access_token"
+  private readonly apiClient = new RedditApiClient()
 
   constructor() {
     super("reddit")
@@ -116,13 +59,14 @@ export class RedditPlatform extends BaseSocialPlatform {
       },
       {
         key: "postType",
-        label: "Post Type",
+        label: "Post type",
         type: "select",
         required: true,
         helpText: "Choose whether to create a text post or link post",
+        placeholder: "Select post type",
         options: [
-          { value: "text", label: "Text Post" },
-          { value: "link", label: "Link Post" }
+          { value: "text", label: "Text post" },
+          { value: "link", label: "Link post" }
         ]
       }
     ]
@@ -155,26 +99,6 @@ export class RedditPlatform extends BaseSocialPlatform {
     return true
   }
 
-  private async makeRedditRequest(endpoint: string, accessToken: string, options: RequestInit = {}): Promise<Response> {
-    const url = `${this.baseUrl}${endpoint}`
-
-    const response = await fetch(url, {
-      ...options,
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
-        "User-Agent": "BetterPlan/1.0",
-        ...options.headers
-      }
-    })
-
-    if (!response.ok) {
-      const error = await response.text()
-      throw new Error(`Reddit API error: ${response.status} - ${error}`)
-    }
-
-    return response
-  }
-
   async startAuthorization(userId: string): Promise<{ url: string }> {
     const session = await getSessionOrThrow()
     const credentials = await getEffectiveCredentials("reddit", session.user.id)
@@ -187,13 +111,7 @@ export class RedditPlatform extends BaseSocialPlatform {
     const redirectUri = `${envConfig.APP_URL}/api/integrations/reddit/callback`
     const scope = ["submit", "read", "identity", "mysubreddits"]
 
-    const authUrl = new URL(this.authUrl)
-    authUrl.searchParams.set("client_id", credentials.clientId)
-    authUrl.searchParams.set("response_type", "code")
-    authUrl.searchParams.set("state", state)
-    authUrl.searchParams.set("redirect_uri", redirectUri)
-    authUrl.searchParams.set("duration", "permanent")
-    authUrl.searchParams.set("scope", scope.join(" "))
+    const authUrl = buildRedditAuthUrl(credentials.clientId, state, redirectUri, scope)
 
     // Store state in cookie for CSRF protection
     setCookie("reddit_oauth_state", state, {
@@ -208,9 +126,8 @@ export class RedditPlatform extends BaseSocialPlatform {
 
   async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
-      const response = await this.makeRedditRequest("/api/v1/me", accessToken)
-      const user: RedditUser = await response.json()
-      return !!user.name
+      await this.apiClient.getUserInfo(accessToken)
+      return true
     } catch (error) {
       console.error("Reddit credentials validation failed:", error)
       return false
@@ -235,47 +152,22 @@ export class RedditPlatform extends BaseSocialPlatform {
         throw new Error("Post title is required for Reddit posts")
       }
 
-      const subredditName = postData.destination.id.replace(/^r\//, "")
+      const subredditName = normalizeSubredditName(postData.destination.id)
 
-      // Prepare form data
-      const formData = new FormData()
-      formData.append("sr", subredditName)
-      formData.append("title", title)
-      formData.append("kind", postType === "link" ? "link" : "self")
-      formData.append("api_type", "json")
-
+      let url: string | undefined
       if (postType === "link") {
         // For link posts, extract URL from content or use entire content as URL
         const urlMatch = postData.content.match(/(https?:\/\/[^\s]+)/i)
-        const url = urlMatch ? urlMatch[1] : postData.content.trim()
+        url = urlMatch ? urlMatch[1] : postData.content.trim()
 
         if (!url.startsWith("http://") && !url.startsWith("https://")) {
           throw new Error("Invalid URL for link post")
         }
-
-        formData.append("url", url)
-      } else {
-        // For text posts, use the content as text body
-        formData.append("text", postData.content)
       }
 
-      const response = await this.makeRedditRequest("/api/submit", accessToken, {
-        method: "POST",
-        body: formData
-      })
+      const result = await this.apiClient.submitPost(subredditName, title, postData.content, accessToken, postType === "link", url)
 
-      const result: RedditSubmissionResponse = await response.json()
-
-      if (result.json.errors.length > 0) {
-        throw new Error(`Reddit API error: ${result.json.errors[0][1]}`)
-      }
-
-      if (!result.json.data?.things?.[0]?.data?.id) {
-        throw new Error("Failed to create Reddit post: No post ID returned")
-      }
-
-      const postId = result.json.data.things[0].data.id
-      const postUrl = `https://www.reddit.com/r/${subredditName}/comments/${postId}/`
+      const postUrl = `https://www.reddit.com/r/${subredditName}/comments/${result.id}/`
 
       return {
         success: true,
@@ -297,31 +189,22 @@ export class RedditPlatform extends BaseSocialPlatform {
     cursor?: string
   ): Promise<PostDestinationSearchResult> {
     try {
-      const response = await this.makeRedditRequest(`/subreddits/search?q=${encodeURIComponent(query)}&limit=25&type=sr`, accessToken)
-
-      const data = await response.json()
-      const destinations: PostDestination[] = []
-
-      if (data.data?.children) {
-        for (const child of data.data.children) {
-          const subreddit: RedditSubreddit = child.data
-          destinations.push({
-            type: "subreddit",
-            id: subreddit.display_name,
-            name: subreddit.display_name_prefixed,
-            description: `${subreddit.public_description || subreddit.title} • ${subreddit.subscribers?.toLocaleString() || "Unknown"} members`,
-            metadata: {
-              subscribers: subreddit.subscribers || 0,
-              over18: subreddit.over18 || false,
-              subredditType: subreddit.subreddit_type || "public"
-            }
-          })
+      const result = await this.apiClient.searchSubreddits(query, accessToken, cursor)
+      const destinations: PostDestination[] = result.subreddits.map((subreddit) => ({
+        type: "subreddit",
+        id: subreddit.display_name,
+        name: subreddit.display_name_prefixed,
+        description: `${subreddit.public_description || subreddit.title} • ${subreddit.subscribers?.toLocaleString() || "Unknown"} members`,
+        metadata: {
+          subscribers: subreddit.subscribers || 0,
+          over18: subreddit.over18 || false,
+          subredditType: subreddit.subreddit_type || "public"
         }
-      }
+      }))
 
       return {
         destinations,
-        hasMore: false
+        hasMore: result.hasMore
       }
     } catch (error) {
       console.error("Failed to search Reddit destinations:", error)
@@ -338,8 +221,8 @@ export class RedditPlatform extends BaseSocialPlatform {
     effectiveCredentials: { clientId: string; clientSecret: string }
   ): Promise<boolean> {
     try {
-      const subredditName = destination.id.replace(/^r\//, "")
-      const response = await this.makeRedditRequest(`/r/${subredditName}/about`, accessToken)
+      const subredditName = normalizeSubredditName(destination.id)
+      const response = await this.apiClient.makeRequest(`/r/${subredditName}/about`, accessToken)
       const data = await response.json()
       return !!data.data?.display_name
     } catch (error) {
@@ -359,9 +242,9 @@ export class RedditPlatform extends BaseSocialPlatform {
     // If we have access token, try to get real subreddit info
     if (accessToken) {
       try {
-        const response = await this.makeRedditRequest(`/r/${cleanInput}/about`, accessToken)
+        const response = await this.apiClient.makeRequest(`/r/${cleanInput}/about`, accessToken)
         const data = await response.json()
-        const subreddit: RedditSubreddit = data.data
+        const subreddit = data.data
 
         return {
           type: "subreddit",
@@ -393,34 +276,27 @@ export class RedditPlatform extends BaseSocialPlatform {
     effectiveCredentials: { clientId: string; clientSecret: string }
   ): Promise<Omit<InsertPost, "userId" | "integrationId">[]> {
     try {
-      const response = await this.makeRedditRequest("/user/me/submitted?limit=25&sort=new", accessToken)
-      const data = await response.json()
+      const submissions = await this.apiClient.getRecentPosts(accessToken, 25)
 
-      const postsToUpsert: Omit<InsertPost, "userId" | "integrationId">[] = []
-
-      if (data.data?.children) {
-        for (const child of data.data.children) {
-          const submission: RedditSubmission = child.data
-
-          // Create content from title and text
-          let content = submission.title
-          if (submission.is_self && submission.selftext) {
-            content += `\n${submission.selftext}`
-          } else if (!submission.is_self && submission.url) {
-            content += `\n${submission.url}`
-          }
-
-          postsToUpsert.push({
-            id: submission.id,
-            content,
-            status: "posted",
-            source: "imported",
-            postedAt: new Date(submission.created_utc * 1000),
-            createdAt: new Date(submission.created_utc * 1000),
-            postUrl: `https://www.reddit.com${submission.permalink}`
-          })
+      const postsToUpsert: Omit<InsertPost, "userId" | "integrationId">[] = submissions.map((submission) => {
+        // Create content from title and text
+        let content = submission.title
+        if (submission.is_self && submission.selftext) {
+          content += `\n${submission.selftext}`
+        } else if (!submission.is_self && submission.url) {
+          content += `\n${submission.url}`
         }
-      }
+
+        return {
+          id: submission.id,
+          content,
+          status: "posted",
+          source: "imported",
+          postedAt: new Date(submission.created_utc * 1000),
+          createdAt: new Date(submission.created_utc * 1000),
+          postUrl: `https://www.reddit.com${submission.permalink}`
+        }
+      })
 
       return postsToUpsert
     } catch (error) {
@@ -435,54 +311,11 @@ export class RedditPlatform extends BaseSocialPlatform {
     redirectUri: string,
     credentials: { clientId: string; clientSecret: string }
   ): Promise<{ accessToken: string; refreshToken?: string }> {
-    try {
-      const auth = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString("base64")
-
-      const formData = new URLSearchParams()
-      formData.append("grant_type", "authorization_code")
-      formData.append("code", code)
-      formData.append("redirect_uri", redirectUri)
-
-      const response = await fetch(this.tokenUrl, {
-        method: "POST",
-        headers: {
-          Authorization: `Basic ${auth}`,
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "BetterPlan/1.0"
-        },
-        body: formData
-      })
-
-      if (!response.ok) {
-        const error = await response.text()
-        throw new Error(`Token exchange failed: ${response.status} - ${error}`)
-      }
-
-      const tokens: RedditTokenResponse = await response.json()
-
-      return {
-        accessToken: tokens.access_token,
-        refreshToken: tokens.refresh_token
-      }
-    } catch (error) {
-      console.error("Failed to exchange code for tokens:", error)
-      throw new Error("Failed to exchange authorization code for tokens")
-    }
+    return this.apiClient.exchangeCodeForTokens(code, redirectUri, credentials)
   }
 
   // Get user info
   async getUserInfo(accessToken: string): Promise<{ id: string; name: string }> {
-    try {
-      const response = await this.makeRedditRequest("/api/v1/me", accessToken)
-      const user: RedditUser = await response.json()
-
-      return {
-        id: user.id,
-        name: user.name
-      }
-    } catch (error) {
-      console.error("Failed to get user info:", error)
-      throw new Error("Failed to get user information")
-    }
+    return this.apiClient.getUserInfo(accessToken)
   }
 }

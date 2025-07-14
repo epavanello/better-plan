@@ -1,5 +1,6 @@
 import type { InsertPost } from "@/database/schema"
 import type { Platform } from "@/database/schema"
+import { z } from "zod"
 
 export interface PostResult {
   success: boolean
@@ -7,14 +8,15 @@ export interface PostResult {
   error?: string
 }
 
-export interface PostDestination {
-  type: string // "public", "community", "subreddit", etc.
-  id: string // URL, subreddit name, etc.
-  name: string // Display name
-  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-  metadata?: Record<string, any> // Additional platform-specific data
-  description?: string // Optional description or help text
-}
+export const DestinationSchema = z.object({
+  type: z.string(), // "public", "community", "subreddit", etc.
+  id: z.string(), // URL, subreddit name, etc.
+  name: z.string(), // Display name
+  metadata: z.record(z.any()).optional(), // Additional platform-specific data
+  description: z.string().optional() // Optional description or help text
+})
+
+export type PostDestination = z.infer<typeof DestinationSchema>
 
 export interface PostDestinationSearchResult {
   destinations: PostDestination[]

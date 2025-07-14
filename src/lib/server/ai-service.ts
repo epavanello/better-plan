@@ -1,39 +1,16 @@
-import { db } from "@/database/db"
-import { type Post, type UserContext, aiUsage, posts, subscriptions, userContext } from "@/database/schema"
-import { getAiConfig, isAiEnabled, isSaasDeployment } from "@/lib/env"
+import { getAiConfig } from "@/lib/env"
 import { openai } from "@ai-sdk/openai"
 import { generateText } from "ai"
-import { and, desc, eq, gte, lte } from "drizzle-orm"
-import { z } from "zod"
-
-export type AiGenerationOptions = {
-  prompt: string
-  userId: string
-  integrationId: string
-  maxTokens?: number
-  temperature?: number
-  // New tuning parameters
-  styleOverride?: "casual" | "formal" | "humorous" | "professional" | "conversational"
-  toneOverride?: "friendly" | "professional" | "authoritative" | "inspirational" | "educational"
-  lengthOverride?: "short" | "medium" | "long"
-  useEmojisOverride?: boolean
-  useHashtagsOverride?: boolean
-  customInstructionsOverride?: string
-  // For iterations
-  previousContent?: string
-  iterationInstruction?: string
-}
-
-export type AiGenerationResult = {
-  success: boolean
-  content?: string
-  error?: string
-  tokensUsed?: number
-  model?: string
-}
+import { AiContextService } from "./ai/context-service"
+import { AiPromptBuilder } from "./ai/prompt-builder"
+import type { AiAccessCheck, AiGenerationOptions, AiGenerationResult } from "./ai/types"
+import { AiUsageService } from "./ai/usage-service"
 
 export class AiService {
   private config = getAiConfig()
+  private contextService = new AiContextService()
+  private usageService = new AiUsageService()
+  private promptBuilder = new AiPromptBuilder()
 
   async generateContent(options: AiGenerationOptions): Promise<AiGenerationResult> {
     try {
@@ -44,20 +21,20 @@ export class AiService {
 
       // Check usage limits if SaaS deployment
       if (this.config.isSaas) {
-        const canUse = await this.checkUsageLimits(options.userId)
+        const canUse = await this.usageService.checkUsageLimits(options.userId)
         if (!canUse.allowed) {
           return { success: false, error: canUse.reason }
         }
       }
 
       // Get user context for personalization
-      const context = await this.getUserContext(options.userId)
+      const context = await this.contextService.getUserContext(options.userId)
 
       // Get recent posts for style consistency
-      const recentPosts = await this.getRecentPosts(options.userId, options.integrationId)
+      const recentPosts = await this.contextService.getRecentPosts(options.userId, options.integrationId)
 
       // Build the system prompt
-      const systemPrompt = this.buildSystemPrompt(context, recentPosts, options)
+      const systemPrompt = this.promptBuilder.buildSystemPrompt(context, recentPosts, options)
 
       // Generate content using OpenAI
       const result = await generateText({
@@ -70,7 +47,7 @@ export class AiService {
 
       // Track usage if SaaS
       if (this.config.isSaas) {
-        await this.trackUsage(options.userId, result.usage?.totalTokens || 0)
+        await this.usageService.trackUsage(options.userId, result.usage?.totalTokens || 0)
       }
 
       return {
@@ -88,261 +65,30 @@ export class AiService {
     }
   }
 
-  private async checkUsageLimits(userId: string): Promise<{ allowed: boolean; reason?: string }> {
+  async canUserAccessAi(userId: string): Promise<AiAccessCheck> {
     try {
-      // Get user's subscription
-      const subscription = await db
-        .select()
-        .from(subscriptions)
-        .where(eq(subscriptions.userId, userId))
-        .orderBy(desc(subscriptions.createdAt))
-        .limit(1)
-        .then((rows) => rows[0])
-
-      if (!subscription) {
-        return { allowed: false, reason: "Subscribe to Pro plan to access AI features" }
+      // Check if AI is enabled
+      if (!this.config.isEnabled) {
+        return { canAccess: false, reason: "AI service is not enabled" }
       }
 
-      if (subscription.status !== "active") {
-        return {
-          allowed: false,
-          reason: "Your subscription has expired. Renew to continue using AI"
-        }
+      // For self-hosted, always allow access
+      if (!this.config.isSaas) {
+        return { canAccess: true }
       }
 
-      // Check if current period is still valid
-      const now = new Date()
-      if (subscription.currentPeriodEnd && subscription.currentPeriodEnd < now) {
-        return { allowed: false, reason: "Your subscription period has expired. Please renew" }
-      }
-
-      // Get current usage for this period
-      const currentUsage = await db
-        .select()
-        .from(aiUsage)
-        .where(
-          and(
-            eq(aiUsage.userId, userId),
-            eq(aiUsage.subscriptionId, subscription.id),
-            gte(aiUsage.periodStart, subscription.currentPeriodStart || new Date()),
-            lte(aiUsage.periodEnd, subscription.currentPeriodEnd || new Date())
-          )
-        )
-        .limit(1)
-        .then((rows) => rows[0])
-
-      if (currentUsage) {
-        // Check generation limit
-        if (currentUsage.generationsUsed >= (subscription.aiGenerationsLimit ?? 0)) {
-          return {
-            allowed: false,
-            reason: "Monthly AI generation limit reached. Upgrade your plan"
-          }
-        }
-
-        // Check context window limit
-        if (currentUsage.contextWindowUsed >= (subscription.aiContextWindowLimit ?? 0)) {
-          return { allowed: false, reason: "Monthly AI usage limit reached. Upgrade your plan" }
-        }
-      }
-
-      return { allowed: true }
-    } catch (error) {
-      console.error("Error checking usage limits:", error)
-      return { allowed: false, reason: "Unable to verify subscription status" }
-    }
-  }
-
-  private async getUserContext(userId: string) {
-    try {
-      const context = await db
-        .select()
-        .from(userContext)
-        .where(eq(userContext.userId, userId))
-        .limit(1)
-        .then((rows) => rows[0])
-
-      return context
-    } catch (error) {
-      console.error("Error getting user context:", error)
-      return null
-    }
-  }
-
-  private async getRecentPosts(userId: string, integrationId: string, limit = 10) {
-    try {
-      const recentPosts = await db
-        .select()
-        .from(posts)
-        .where(and(eq(posts.userId, userId), eq(posts.integrationId, integrationId), eq(posts.status, "posted")))
-        .orderBy(desc(posts.postedAt))
-        .limit(limit)
-
-      return recentPosts
-    } catch (error) {
-      console.error("Error getting recent posts:", error)
-      return []
-    }
-  }
-
-  private buildSystemPrompt(context: UserContext | null, recentPosts: Post[], overrides: Partial<AiGenerationOptions> = {}): string {
-    let systemPrompt = "You are a social media content creator assistant. Your task is to generate engaging, authentic social media posts."
-
-    // Add user context if available, with overrides taking priority
-    if (context || Object.keys(overrides).length > 0) {
-      systemPrompt += "\n\nUser Profile:"
-      if (context?.bio) systemPrompt += `\n- Bio: ${context.bio}`
-      if (context?.profession) systemPrompt += `\n- Profession: ${context.profession}`
-      if (context?.industry) systemPrompt += `\n- Industry: ${context.industry ?? ""}`
-      if (context?.targetAudience) systemPrompt += `\n- Target Audience: ${context.targetAudience}`
-
-      // Use overrides or fall back to context
-      const writingStyle = overrides.styleOverride || context?.writingStyle
-      const toneOfVoice = overrides.toneOverride || context?.toneOfVoice
-      const customInstructions = overrides.customInstructionsOverride || context?.customInstructions
-      const postLength = overrides.lengthOverride || context?.defaultPostLength
-
-      if (writingStyle) systemPrompt += `\n- Writing Style: ${writingStyle}`
-      if (toneOfVoice) systemPrompt += `\n- Tone of Voice: ${toneOfVoice}`
-      if (postLength) {
-        const lengthMap = {
-          short: "1-2 sentences",
-          medium: "3-5 sentences",
-          long: "6+ sentences"
-        }
-        systemPrompt += `\n- Preferred Length: ${lengthMap[postLength as keyof typeof lengthMap] || postLength}`
-      }
-      if (customInstructions) systemPrompt += `\n- Custom Instructions: ${customInstructions}`
-    }
-
-    // Add recent posts for style consistency
-    if (recentPosts.length > 0) {
-      systemPrompt += "\n\nRecent Posts (for style reference):"
-      recentPosts.forEach((post, index) => {
-        systemPrompt += `\n${index + 1}. ${post.content}`
-      })
-      systemPrompt += "\n\nPlease maintain consistency with the writing style and tone shown in these recent posts."
-    }
-
-    // Handle iteration requests
-    if (overrides.previousContent && overrides.iterationInstruction) {
-      systemPrompt += "\n\nIteration Request:"
-      systemPrompt += `\nPrevious content: "${overrides.previousContent}"`
-      systemPrompt += `\nImprovement instruction: ${overrides.iterationInstruction}`
-      systemPrompt += "\nPlease generate an improved version based on the instruction while maintaining the core message and style."
-    }
-
-    // Add generation guidelines
-    systemPrompt += "\n\nGeneration Guidelines:"
-    systemPrompt += "\n- Keep the content authentic and engaging"
-    systemPrompt += "\n- Match the user's established voice and style"
-    systemPrompt += "\n- Make it appropriate for the target audience"
-    systemPrompt += "\n- Focus on value and engagement"
-
-    // Use override values or fall back to context
-    const finalUseEmojis = overrides.useEmojisOverride !== undefined ? overrides.useEmojisOverride : context?.useEmojis
-    const finalUseHashtags = overrides.useHashtagsOverride !== undefined ? overrides.useHashtagsOverride : context?.useHashtags
-
-    if (finalUseEmojis) {
-      systemPrompt += "\n- Use emojis appropriately"
-    } else {
-      systemPrompt += "\n- Do not use emojis"
-    }
-
-    if (finalUseHashtags) {
-      systemPrompt += "\n- Include relevant hashtags when appropriate"
-    } else {
-      systemPrompt += "\n- Do not include hashtags"
-    }
-
-    return systemPrompt
-  }
-
-  private async trackUsage(userId: string, tokensUsed: number) {
-    try {
-      // Get user's subscription
-      const subscription = await db
-        .select()
-        .from(subscriptions)
-        .where(eq(subscriptions.userId, userId))
-        .orderBy(desc(subscriptions.createdAt))
-        .limit(1)
-        .then((rows) => rows[0])
-
-      if (!subscription) return
-
-      // Get or create usage record for current period
-      const now = new Date()
-      const periodStart = subscription.currentPeriodStart || now
-      const periodEnd = subscription.currentPeriodEnd || new Date(now.getFullYear(), now.getMonth() + 1, 0)
-
-      const existingUsage = await db
-        .select()
-        .from(aiUsage)
-        .where(
-          and(
-            eq(aiUsage.userId, userId),
-            eq(aiUsage.subscriptionId, subscription.id),
-            gte(aiUsage.periodStart, periodStart),
-            lte(aiUsage.periodEnd, periodEnd)
-          )
-        )
-        .limit(1)
-        .then((rows) => rows[0])
-
-      if (existingUsage) {
-        // Update existing usage
-        await db
-          .update(aiUsage)
-          .set({
-            generationsUsed: existingUsage.generationsUsed + 1,
-            contextWindowUsed: existingUsage.contextWindowUsed + tokensUsed,
-            updatedAt: now
-          })
-          .where(eq(aiUsage.id, existingUsage.id))
-      } else {
-        // Create new usage record
-        await db.insert(aiUsage).values({
-          userId,
-          subscriptionId: subscription.id,
-          generationsUsed: 1,
-          contextWindowUsed: tokensUsed,
-          periodStart,
-          periodEnd
-        })
+      // For SaaS, check usage limits
+      const canUse = await this.usageService.checkUsageLimits(userId)
+      return {
+        canAccess: canUse.allowed,
+        reason: canUse.reason
       }
     } catch (error) {
-      console.error("Error tracking usage:", error)
+      console.error("Error checking AI access:", error)
+      return { canAccess: false, reason: "Unable to verify AI access" }
     }
-  }
-
-  async canUserAccessAi(userId: string): Promise<{ canAccess: boolean; reason?: string }> {
-    // Check if AI is enabled globally
-    if (!isAiEnabled()) {
-      if (isSaasDeployment()) {
-        return { canAccess: false, reason: "AI features require a Pro subscription" }
-      }
-
-      return { canAccess: false, reason: "OpenAI API key not configured" }
-    }
-
-    // For self-hosted, if AI is enabled, user has access
-    if (!isSaasDeployment()) {
-      return { canAccess: true }
-    }
-
-    // For SaaS deployment, check subscription and limits
-    const limits = await this.checkUsageLimits(userId)
-    return { canAccess: limits.allowed, reason: limits.reason }
   }
 }
 
+// Export singleton instance
 export const aiService = new AiService()
-
-// Schema for API validation
-export const generateContentSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required"),
-  integrationId: z.string().min(1, "Integration ID is required"),
-  maxTokens: z.number().optional(),
-  temperature: z.number().min(0).max(1).optional()
-})
