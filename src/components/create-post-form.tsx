@@ -11,7 +11,7 @@ import { checkAiAccess, generateAiContent } from "@/functions/ai"
 import { createDestinationFromInput, getRecentDestinations } from "@/functions/posts"
 import type { PlatformInfo, PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { CalendarClock, ChevronDown, ChevronUp, HelpCircle, Loader2, Lock, MapPin, Rocket, RotateCcw, Sparkles, X } from "lucide-react"
+import { CalendarClock, ChevronDown, ChevronUp, HelpCircle, History, Loader2, Lock, MapPin, Rocket, Sparkles, X, Zap } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
 
@@ -326,9 +326,9 @@ export function CreatePostForm({
     }
 
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         {platformInfo.requiredFields.map((field) => (
-          <div key={field.key} className="space-y-2">
+          <div key={field.key} className="space-y-1">
             <Label htmlFor={field.key} className="font-medium text-sm">
               {field.label}
               {field.required && <span className="ml-1 text-red-500">*</span>}
@@ -340,7 +340,7 @@ export function CreatePostForm({
                 onChange={(e) => handleAdditionalFieldChange(field.key, e.target.value)}
                 placeholder={field.placeholder}
                 maxLength={field.maxLength}
-                className="min-h-[80px]"
+                className="min-h-[60px]"
               />
             ) : field.type === "select" && field.options ? (
               <Select value={additionalFields[field.key] || ""} onValueChange={(value) => handleAdditionalFieldChange(field.key, value)}>
@@ -365,7 +365,7 @@ export function CreatePostForm({
                 maxLength={field.maxLength}
               />
             )}
-            {field.helpText && <p className="text-gray-600 text-sm dark:text-gray-400">{field.helpText}</p>}
+            {field.helpText && <p className="text-gray-600 text-xs dark:text-gray-400">{field.helpText}</p>}
           </div>
         ))}
       </div>
@@ -378,7 +378,6 @@ export function CreatePostForm({
 
   const renderAiButton = () => {
     if (isAiAvailable) {
-      // AI is available - show normal button
       return (
         <Button
           type="button"
@@ -392,7 +391,6 @@ export function CreatePostForm({
         </Button>
       )
     }
-    // AI is not available - show disabled button with tooltip and description
     return (
       <div className="space-y-2">
         <TooltipProvider>
@@ -416,7 +414,7 @@ export function CreatePostForm({
   }
 
   const renderAdvancedSettings = () => (
-    <div className="space-y-4 rounded-lg border bg-muted/50 p-4">
+    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
       <div className="flex items-center justify-between">
         <Label className="font-medium text-sm">AI Tuning Parameters</Label>
         <Button type="button" variant="ghost" size="sm" onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}>
@@ -425,9 +423,9 @@ export function CreatePostForm({
       </div>
 
       {showAdvancedSettings && (
-        <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+        <div className="space-y-3">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
               <Label htmlFor="temperature" className="text-sm">
                 Creativity ({aiParameters.temperature})
               </Label>
@@ -447,7 +445,7 @@ export function CreatePostForm({
               </div>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label htmlFor="maxTokens" className="text-sm">
                 Max Length
               </Label>
@@ -463,8 +461,8 @@ export function CreatePostForm({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
               <Label className="text-sm">Style Override</Label>
               <Select
                 value={aiParameters.styleOverride}
@@ -483,7 +481,7 @@ export function CreatePostForm({
               </Select>
             </div>
 
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm">Tone Override</Label>
               <Select
                 value={aiParameters.toneOverride}
@@ -503,7 +501,7 @@ export function CreatePostForm({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label className="text-sm">Length Override</Label>
             <Select
               value={aiParameters.lengthOverride}
@@ -520,7 +518,7 @@ export function CreatePostForm({
             </Select>
           </div>
 
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-3">
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="useEmojisOverride"
@@ -548,7 +546,7 @@ export function CreatePostForm({
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1">
             <Label htmlFor="customInstructionsOverride" className="text-sm">
               Custom Instructions Override
             </Label>
@@ -566,25 +564,25 @@ export function CreatePostForm({
   )
 
   return (
-    <div className="w-full rounded-lg border p-4">
-      <h2 className="mb-4 font-semibold text-lg">Create a new post</h2>
-      <div className="grid gap-4">
-        {/* AI Generation Section - Always visible */}
-        <div className="space-y-2">
-          {!showAiInput || !isAiAvailable ? (
-            renderAiButton()
-          ) : (
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ai-prompt">AI Prompt</Label>
+    <div className="w-full space-y-4">
+      {/* AI Generation Section */}
+      <div className="space-y-3">
+        {!showAiInput || !isAiAvailable ? (
+          renderAiButton()
+        ) : (
+          <div className="space-y-3">
+            <div className="space-y-2">
+              <Label htmlFor="ai-prompt">AI Prompt</Label>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <Input
+                  id="ai-prompt"
+                  placeholder="e.g., Write a post about the benefits of remote work"
+                  value={aiPrompt}
+                  onChange={(e) => setAiPrompt(e.target.value)}
+                  disabled={isGenerating}
+                  className="flex-1"
+                />
                 <div className="flex gap-2">
-                  <Input
-                    id="ai-prompt"
-                    placeholder="e.g., Write a post about the benefits of remote work"
-                    value={aiPrompt}
-                    onChange={(e) => setAiPrompt(e.target.value)}
-                    disabled={isGenerating}
-                  />
                   <Button type="button" onClick={() => handleGenerateAiContent()} disabled={!aiPrompt.trim() || isGenerating} size="sm">
                     {isGenerating ? (
                       <>
@@ -612,228 +610,259 @@ export function CreatePostForm({
                   </Button>
                 </div>
               </div>
-
-              {/* Advanced AI Settings */}
-              {renderAdvancedSettings()}
-
-              {/* Quick Adjustment Buttons - only show if content exists */}
-              {
-                <div className="space-y-2">
-                  <Label className="font-medium text-sm">Quick Adjustments</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("shorter")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      Shorter
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("longer")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      Longer
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("formal")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      More Formal
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("casual")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      More Casual
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("humor")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      Add Humor
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleQuickAdjustment("engaging")}
-                      disabled={isGenerating}
-                    >
-                      <RotateCcw />
-                      More Engaging
-                    </Button>
-                  </div>
-                </div>
-              }
-
-              {/* Generation History */}
-              {generationHistory.length > 0 && (
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <Label className="font-medium text-sm">Generation History</Label>
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setShowGenerationHistory(!showGenerationHistory)}>
-                      {showGenerationHistory ? "Hide" : "Show"} History
-                    </Button>
-                  </div>
-
-                  {showGenerationHistory && (
-                    <div className="max-h-60 space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-2">
-                      {generationHistory.map((item) => (
-                        <div key={item.id} className="rounded border bg-background p-2">
-                          <div className="mb-1 flex items-start justify-between">
-                            <span className="text-muted-foreground text-xs">{item.timestamp.toLocaleTimeString()}</span>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleUseHistoryItem(item)}
-                              className="h-6 px-2 text-xs"
-                            >
-                              Use
-                            </Button>
-                          </div>
-                          <p className="line-clamp-2 text-sm">{item.content}</p>
-                          <p className="mt-1 text-muted-foreground text-xs">Prompt: {item.prompt}</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Main Content Textarea */}
-        <Textarea placeholder="What's on your mind?" value={content} onChange={(e) => setContent(e.target.value)} disabled={isGenerating} />
-
-        {/* Destination Selection - Only show if platform supports destinations */}
-        {platformInfo?.supportsDestinations && (
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <MapPin className="h-4 w-4" />
-              <Label className="font-medium text-sm">
-                Destination
-                {platformInfo.destinationRequired && <span className="ml-1 text-red-500">*</span>}
-              </Label>
-              {platformInfo.destinationHelpText && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <HelpCircle className="h-4 w-4 cursor-help text-muted-foreground" />
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">{platformInfo.destinationHelpText}</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
             </div>
 
-            {/* Selected Destination Display */}
-            {selectedDestination && (
-              <div className="flex items-center gap-2 rounded-lg bg-muted p-2">
-                <MapPin className="h-4 w-4 text-muted-foreground" />
-                <div className="flex-1">
-                  <div className="font-medium text-sm">{selectedDestination.name}</div>
-                  {selectedDestination.description && (
-                    <div className="text-muted-foreground text-xs">{selectedDestination.description}</div>
-                  )}
-                </div>
-                <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedDestination(undefined)} className="h-6 w-6 p-0">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-            )}
+            {/* Advanced AI Settings */}
+            {renderAdvancedSettings()}
 
-            {/* Destination Selection */}
-            {!selectedDestination && (
+            {/* Quick Adjustment Buttons */}
+            {content && (
               <div className="space-y-2">
-                {/* Recent Destinations */}
-                {recentDestinations && recentDestinations.length > 0 && (
-                  <div className="space-y-2">
-                    <Label className="text-sm">Recent Destinations</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {recentDestinations.map((dest) => (
-                        <Button
-                          key={dest.id}
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDestinationSelect(dest)}
-                          className="h-8 text-xs"
-                        >
-                          <MapPin className="mr-1 h-3 w-3" />
-                          {dest.name}
-                        </Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Custom Destination Input */}
-                <div className="space-y-2">
+                <Label className="font-medium text-sm">Quick Adjustments</Label>
+                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
                   <Button
                     type="button"
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowCustomDestination(!showCustomDestination)}
-                    className="w-full"
+                    onClick={() => handleQuickAdjustment("shorter")}
+                    disabled={isGenerating}
+                    className="justify-start"
                   >
-                    {showCustomDestination ? "Cancel" : "Add Custom Destination"}
+                    <Zap className="mr-1 h-3 w-3" />
+                    Shorter
                   </Button>
-
-                  {showCustomDestination && (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={platformInfo.destinationPlaceholder || "Enter destination..."}
-                        value={customDestination}
-                        onChange={(e) => setCustomDestination(e.target.value)}
-                        className="flex-1"
-                      />
-                      <Button type="button" onClick={handleCustomDestination} disabled={!customDestination.trim()} size="sm">
-                        Add
-                      </Button>
-                    </div>
-                  )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAdjustment("longer")}
+                    disabled={isGenerating}
+                    className="justify-start"
+                  >
+                    <Zap className="mr-1 h-3 w-3" />
+                    Longer
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAdjustment("formal")}
+                    disabled={isGenerating}
+                    className="justify-start"
+                  >
+                    <Zap className="mr-1 h-3 w-3" />
+                    Formal
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAdjustment("casual")}
+                    disabled={isGenerating}
+                    className="justify-start"
+                  >
+                    <Zap className="mr-1 h-3 w-3" />
+                    Casual
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAdjustment("humor")}
+                    disabled={isGenerating}
+                    className="justify-start"
+                  >
+                    <Zap className="mr-1 h-3 w-3" />
+                    Humor
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleQuickAdjustment("engaging")}
+                    disabled={isGenerating}
+                    className="justify-start"
+                  >
+                    <Zap className="mr-1 h-3 w-3" />
+                    Engaging
+                  </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Generation History */}
+            {generationHistory.length > 0 && (
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="font-medium text-sm">Generation History</Label>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowGenerationHistory(!showGenerationHistory)}>
+                    <History className="mr-1 h-3 w-3" />
+                    {showGenerationHistory ? "Hide" : "Show"} History
+                  </Button>
+                </div>
+
+                {showGenerationHistory && (
+                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-2">
+                    {generationHistory.map((item) => (
+                      <div key={item.id} className="rounded border bg-background p-2">
+                        <div className="mb-1 flex items-start justify-between">
+                          <span className="text-muted-foreground text-xs">{item.timestamp.toLocaleTimeString()}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleUseHistoryItem(item)}
+                            className="h-6 px-2 text-xs"
+                          >
+                            Use
+                          </Button>
+                        </div>
+                        <p className="line-clamp-2 text-sm">{item.content}</p>
+                        <p className="mt-1 text-muted-foreground text-xs">Prompt: {item.prompt}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
         )}
+      </div>
 
-        {/* Additional Fields */}
-        {renderAdditionalFields()}
+      {/* Main Content Textarea */}
+      <div className="space-y-2">
+        <Label htmlFor="content">Post Content</Label>
+        <Textarea
+          id="content"
+          placeholder="What's on your mind?"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+          disabled={isGenerating}
+          className="min-h-[120px]"
+        />
+      </div>
 
-        {/* Action Buttons */}
-        <div className="flex justify-end gap-2">
-          <Button variant="ghost" onClick={handleClear} disabled={isPending || isGenerating}>
-            <X />
-            Clear
-          </Button>
+      {/* Destination Selection - Only show if platform supports destinations */}
+      {platformInfo?.supportsDestinations && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <Label className="font-medium text-sm">
+              Destination
+              {platformInfo.destinationRequired && <span className="ml-1 text-red-500">*</span>}
+            </Label>
+            {platformInfo.destinationHelpText && (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="h-4 w-4 cursor-help text-muted-foreground" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs">{platformInfo.destinationHelpText}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            )}
+          </div>
+
+          {/* Selected Destination Display */}
+          {selectedDestination && (
+            <div className="flex items-center gap-2 rounded-lg bg-muted p-2">
+              <MapPin className="h-4 w-4 text-muted-foreground" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate font-medium text-sm">{selectedDestination.name}</div>
+                {selectedDestination.description && (
+                  <div className="truncate text-muted-foreground text-xs">{selectedDestination.description}</div>
+                )}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedDestination(undefined)}
+                className="h-6 w-6 flex-shrink-0 p-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+
+          {/* Destination Selection */}
+          {!selectedDestination && (
+            <div className="space-y-2">
+              {/* Recent Destinations */}
+              {recentDestinations && recentDestinations.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm">Recent Destinations</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {recentDestinations.map((dest) => (
+                      <Button
+                        key={dest.id}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDestinationSelect(dest)}
+                        className="h-8 text-xs"
+                      >
+                        <MapPin className="mr-1 h-3 w-3" />
+                        <span className="truncate">{dest.name}</span>
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Custom Destination Input */}
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowCustomDestination(!showCustomDestination)}
+                  className="w-full"
+                >
+                  {showCustomDestination ? "Cancel" : "Add Custom Destination"}
+                </Button>
+
+                {showCustomDestination && (
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <Input
+                      placeholder={platformInfo.destinationPlaceholder || "Enter destination..."}
+                      value={customDestination}
+                      onChange={(e) => setCustomDestination(e.target.value)}
+                      className="flex-1"
+                    />
+                    <Button
+                      type="button"
+                      onClick={handleCustomDestination}
+                      disabled={!customDestination.trim()}
+                      size="sm"
+                      className="sm:w-auto"
+                    >
+                      Add
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Additional Fields */}
+      {renderAdditionalFields()}
+
+      {/* Action Buttons */}
+      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
+        <Button variant="ghost" onClick={handleClear} disabled={isPending || isGenerating} className="sm:order-2">
+          <X className="mr-2 h-4 w-4" />
+          Clear
+        </Button>
+        <div className="flex gap-2 sm:order-1">
           <Popover open={isPublishPopoverOpen} onOpenChange={setIsPublishPopoverOpen}>
             <PopoverTrigger asChild>
-              <Button disabled={!canSubmit || isGenerating}>
-                <Rocket />
+              <Button disabled={!canSubmit || isGenerating} className="flex-1 sm:flex-none">
+                <Rocket className="mr-2 h-4 w-4" />
                 Post Now
               </Button>
             </PopoverTrigger>
@@ -863,8 +892,8 @@ export function CreatePostForm({
           </Popover>
           <Popover open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
             <PopoverTrigger asChild>
-              <Button variant="outline" disabled={!canSubmit || isGenerating}>
-                <CalendarClock />
+              <Button variant="outline" disabled={!canSubmit || isGenerating} className="flex-1 sm:flex-none">
+                <CalendarClock className="mr-2 h-4 w-4" />
                 Schedule
               </Button>
             </PopoverTrigger>
