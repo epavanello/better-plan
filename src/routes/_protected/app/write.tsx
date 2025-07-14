@@ -9,7 +9,7 @@ import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/func
 import type { PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute } from "@tanstack/react-router"
-import { Download } from "lucide-react"
+import { Download, List, PenTool } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
 
@@ -117,71 +117,134 @@ function RouteComponent() {
   }
 
   return (
-    <div className="container mx-auto max-w-2xl flex-1 space-y-8 p-4">
-      <div className="space-y-2">
-        <h1 className="font-bold text-2xl">Dashboard</h1>
-        <p className="text-muted-foreground">Select a platform to manage your posts.</p>
-      </div>
-      <div className="w-full">
-        <Select onValueChange={setSelectedIntegrationId} value={selectedIntegrationId}>
-          <SelectTrigger>
-            <SelectValue placeholder="Select a platform" />
-          </SelectTrigger>
-          <SelectContent>
-            {integrations.length > 0 ? (
-              integrations.map((i) => (
-                <SelectItem key={i.id} value={i.id}>
-                  <div className="flex items-center gap-2">
-                    {platformIcons[i.platform]}
-                    <span>{i.platformAccountName}</span>
-                  </div>
-                </SelectItem>
-              ))
-            ) : (
-              <SelectItem value="no-platforms" disabled>
-                No platforms connected
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <div className="sticky top-14 z-10 h-24 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h1 className="font-bold text-xl sm:text-2xl">Content Creator</h1>
+              <p className="text-muted-foreground text-sm">Create and manage your social media posts</p>
+            </div>
+
+            {/* Platform Selector */}
+            <div className="w-full sm:w-64">
+              <Select onValueChange={setSelectedIntegrationId} value={selectedIntegrationId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a platform" />
+                </SelectTrigger>
+                <SelectContent>
+                  {integrations.length > 0 ? (
+                    integrations.map((i) => (
+                      <SelectItem key={i.id} value={i.id}>
+                        <div className="flex items-center gap-2">
+                          {platformIcons[i.platform]}
+                          <span className="truncate">{i.platformAccountName}</span>
+                        </div>
+                      </SelectItem>
+                    ))
+                  ) : (
+                    <SelectItem value="no-platforms" disabled>
+                      No platforms connected
+                    </SelectItem>
+                  )}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {selectedIntegrationId && (
-        <>
-          <CreatePostForm
-            selectedIntegrationId={selectedIntegrationId}
-            currentIntegrationName={currentIntegration?.platformAccountName}
-            currentPlatform={currentIntegration?.platform}
-            platformInfo={platformInfo}
-            isPending={isPending}
-            onCreatePost={handleCreatePost}
-            onClear={handleClear}
-            onValidationError={handleValidationError}
-          />
-          <div className="w-full">
-            <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-semibold text-lg">Your Posts</h2>
-              {platformSupportsFetching && (
-                <Button onClick={handleFetchRecent} disabled={!selectedIntegrationId || isSyncingPosts} size="sm">
-                  <Download className="mr-2 h-4 w-4" />
-                  {isSyncingPosts ? "Syncing..." : "Sync posts"}
-                </Button>
-              )}
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-6">
+        {!selectedIntegrationId ? (
+          // Empty State
+          <div className="flex flex-col items-center justify-center py-16 text-center sm:py-20">
+            <div className="mb-6 rounded-full bg-muted p-4">
+              <PenTool className="h-8 w-8 text-muted-foreground" />
             </div>
-            <PostsList
-              posts={posts}
-              isPending={isPostsPending}
-              onDeletePost={(postId) =>
-                deleteMutate({
-                  data: {
-                    id: postId
-                  }
-                })
-              }
-            />
+            <h2 className="mb-2 font-semibold text-xl">Ready to create content?</h2>
+            <p className="mb-6 max-w-md text-muted-foreground">
+              Select a platform from the dropdown above to start creating and managing your social media posts.
+            </p>
+            <div className="flex items-center gap-2 text-muted-foreground text-sm">
+              <List className="h-4 w-4" />
+              <span>Connect your social media accounts to get started</span>
+            </div>
           </div>
-        </>
-      )}
+        ) : (
+          // Responsive layout: single column on mobile, two columns on desktop
+          <div className="space-y-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
+            {/* Create Post Section - Takes 2 columns on desktop */}
+            <div className="lg:col-span-2">
+              <div className="lg:sticky lg:top-44">
+                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2">
+                    <PenTool className="h-5 w-5" />
+                    <h2 className="font-semibold text-lg">Create New Post</h2>
+                  </div>
+                  {currentIntegration && (
+                    <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
+                      {platformIcons[currentIntegration.platform]}
+                      <span className="truncate font-medium">{currentIntegration.platformAccountName}</span>
+                    </div>
+                  )}
+                </div>
+
+                <CreatePostForm
+                  selectedIntegrationId={selectedIntegrationId}
+                  currentIntegrationName={currentIntegration?.platformAccountName}
+                  currentPlatform={currentIntegration?.platform}
+                  platformInfo={platformInfo}
+                  isPending={isPending}
+                  onCreatePost={handleCreatePost}
+                  onClear={handleClear}
+                  onValidationError={handleValidationError}
+                />
+              </div>
+            </div>
+
+            {/* Posts List Section - Takes 1 column on desktop */}
+            <div className="lg:col-span-1">
+              <div className="space-y-4">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex items-center gap-2">
+                    <List className="h-5 w-5" />
+                    <h2 className="font-semibold text-lg">Your Posts</h2>
+                    {posts.length > 0 && <span className="rounded-full bg-muted px-2 py-1 font-medium text-xs">{posts.length}</span>}
+                  </div>
+                  {platformSupportsFetching && (
+                    <Button
+                      onClick={handleFetchRecent}
+                      disabled={!selectedIntegrationId || isSyncingPosts}
+                      size="sm"
+                      variant="outline"
+                      className="w-full sm:w-auto"
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {isSyncingPosts ? "Syncing..." : "Sync"}
+                    </Button>
+                  )}
+                </div>
+
+                <div className="rounded-lg border bg-card">
+                  <PostsList
+                    posts={posts}
+                    isPending={isPostsPending}
+                    onDeletePost={(postId) =>
+                      deleteMutate({
+                        data: {
+                          id: postId
+                        }
+                      })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
