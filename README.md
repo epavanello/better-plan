@@ -23,12 +23,13 @@ A modern, AI-powered social media management tool that helps you create, schedul
 - **Modern Stack** - React 19, TanStack Start, Drizzle ORM, and Vite
 - **Containerized** - Docker support for easy deployment
 - **Database Migration** - Automatic schema management with Drizzle Kit
+- **Flexible Database** - SQLite for local development, Turso for production scaling
 
 ## 🛠️ Tech Stack
 
 - **Frontend**: React 19, TanStack Start, TanStack Query, Tailwind CSS
 - **Backend**: TanStack Start (full-stack), Better Auth
-- **Database**: PostgreSQL with Drizzle ORM
+- **Database**: SQLite (local development) / Turso (production/SaaS) with Drizzle ORM - Edge-ready, serverless-friendly
 - **AI**: OpenAI GPT integration
 - **Build Tools**: Vite, TypeScript, Biome (linting)
 - **Deployment**: Docker, GitHub Actions CI/CD
@@ -37,8 +38,8 @@ A modern, AI-powered social media management tool that helps you create, schedul
 
 ### Prerequisites
 - Node.js 18+ and pnpm
-- PostgreSQL database
 - OpenAI API key (optional, for AI features)
+- Turso account (optional, for production/SaaS deployment)
 
 ### Installation
 
@@ -57,10 +58,10 @@ A modern, AI-powered social media management tool that helps you create, schedul
    
    Create a `.env` file in the root directory:
    ```env
-   # Database
-   POSTGRES_USER=postgres
-   POSTGRES_PASSWORD=postgres
-   POSTGRES_DB=better-plan
+   # Database (SQLite for development, Turso for production)
+   DATABASE_URL=file:///app/data/local.db
+   DATABASE_AUTH_TOKEN=
+   DATABASE_DIALECT=sqlite
    
    # App Configuration
    APP_URL=http://localhost:3000
@@ -75,20 +76,27 @@ A modern, AI-powered social media management tool that helps you create, schedul
    X_CLIENT_ID=your-twitter-client-id
    X_CLIENT_SECRET=your-twitter-client-secret
    ```
-
-4. **Start the development database**
-   ```bash
-   pnpm run dev:docker
+   
+   **For production/SaaS with Turso:**
+   ```env
+   DATABASE_URL=libsql://your-database-url.turso.io
+   DATABASE_AUTH_TOKEN=your-turso-auth-token
+   DATABASE_DIALECT=turso
    ```
 
-5. **Run database migrations**
+4. **Run database migrations**
    ```bash
    pnpm run db:migrate
    ```
 
-6. **Start the development server**
+5. **Start the development server**
    ```bash
    pnpm dev
+   ```
+
+   **Optional: Start with Docker (includes database)**
+   ```bash
+   pnpm run dev:docker
    ```
 
 Visit `http://localhost:3000` to access the application.
