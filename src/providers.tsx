@@ -36,6 +36,7 @@ export function Providers({ children }: { children: ReactNode }) {
           <AuthUIProviderTanstack
             authClient={authClient}
             redirectTo="/app"
+            providers={["google"]}
             navigate={(href) => router.navigate({ href })}
             replace={(href) => router.navigate({ href, replace: true })}
             Link={({ href, ...props }) => <Link to={href} {...props} />}

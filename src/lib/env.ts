@@ -2,6 +2,8 @@ import { z } from "zod"
 
 const envSchema = z.object({
   APP_URL: z.string().url(),
+  GOOGLE_CLIENT_ID: z.string().optional(),
+  GOOGLE_CLIENT_SECRET: z.string().optional(),
   X_CLIENT_ID: z.string().optional(),
   X_CLIENT_SECRET: z.string().optional(),
   REDDIT_CLIENT_ID: z.string().optional(),

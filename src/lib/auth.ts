@@ -18,6 +18,15 @@ export const auth = betterAuth({
     enabled: true,
     disableSignUp: envConfig.DISABLE_SIGNUP
   },
+  socialProviders: {
+    ...(envConfig.GOOGLE_CLIENT_ID && envConfig.GOOGLE_CLIENT_SECRET ? {
+      google: {
+        clientId: envConfig.GOOGLE_CLIENT_ID,
+        clientSecret: envConfig.GOOGLE_CLIENT_SECRET
+      }
+    }
+      : {}),
+  },
   plugins: [organization(), reactStartCookies()]
 })
 

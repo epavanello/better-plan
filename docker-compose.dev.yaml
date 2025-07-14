@@ -20,6 +20,8 @@ services:
     - NODE_ENV=development
     # --- Other application variables
     - APP_URL=${APP_URL:-http://localhost:3000}
+    - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+    - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     - X_CLIENT_ID=${X_CLIENT_ID}
     - X_CLIENT_SECRET=${X_CLIENT_SECRET}
     - REDDIT_CLIENT_ID=${REDDIT_CLIENT_ID}
