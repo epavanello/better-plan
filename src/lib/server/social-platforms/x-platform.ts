@@ -5,6 +5,7 @@ import { setCookie } from "@tanstack/react-start/server"
 import { type SendTweetV2Params, TwitterApi } from "twitter-api-v2"
 import { getEffectiveCredentials } from "../integrations"
 import { BaseSocialPlatform, type PostData, type PostDestination, type PostResult } from "./base-platform"
+import { extractCommunityId, parseAccessToken, validateCommunityUrl } from "./x/x-utils"
 
 export class XPlatform extends BaseSocialPlatform {
   constructor() {
@@ -83,17 +84,9 @@ export class XPlatform extends BaseSocialPlatform {
     }
   }
 
-  private parseAccessToken(accessToken: string): { token: string; secret: string } {
-    const [token, secret] = accessToken.split(":")
-    if (!token || !secret) {
-      throw new Error("Invalid X access token format. Expected format: 'token:secret'")
-    }
-    return { token, secret }
-  }
-
   async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
-      const { token, secret } = this.parseAccessToken(accessToken)
+      const { token, secret } = parseAccessToken(accessToken)
 
       const client = new TwitterApi({
         appKey: effectiveCredentials.clientId,
@@ -117,7 +110,7 @@ export class XPlatform extends BaseSocialPlatform {
     effectiveCredentials: { clientId: string; clientSecret: string }
   ): Promise<PostResult> {
     try {
-      const { token, secret } = this.parseAccessToken(accessToken)
+      const { token, secret } = parseAccessToken(accessToken)
 
       const twitterClient = new TwitterApi({
         appKey: effectiveCredentials.clientId,
@@ -131,7 +124,7 @@ export class XPlatform extends BaseSocialPlatform {
 
       // Add community_id if posting to a community
       if (postData.destination && postData.destination.type === "community") {
-        const communityId = this.extractCommunityId(postData.destination.id)
+        const communityId = extractCommunityId(postData.destination.id)
         if (!communityId) {
           throw new Error("Invalid community URL format")
         }
@@ -156,12 +149,6 @@ export class XPlatform extends BaseSocialPlatform {
     }
   }
 
-  private extractCommunityId(communityUrl: string): string | null {
-    // Extract community ID from URL like https://x.com/i/communities/1493446837214187523
-    const match = communityUrl.match(/\/communities\/(\d+)/)
-    return match ? match[1] : null
-  }
-
   async validateDestination(
     destination: PostDestination,
     accessToken: string,
@@ -173,7 +160,7 @@ export class XPlatform extends BaseSocialPlatform {
 
     if (destination.type === "community") {
       // Validate community URL format
-      const communityId = this.extractCommunityId(destination.id)
+      const communityId = extractCommunityId(destination.id)
       if (!communityId) {
         return false
       }
@@ -192,7 +179,7 @@ export class XPlatform extends BaseSocialPlatform {
     effectiveCredentials: { clientId: string; clientSecret: string }
   ): Promise<string | null> {
     try {
-      const { token, secret } = this.parseAccessToken(accessToken)
+      const { token, secret } = parseAccessToken(accessToken)
 
       const client = new TwitterApi({
         appKey: effectiveCredentials.clientId,
@@ -228,18 +215,19 @@ export class XPlatform extends BaseSocialPlatform {
 
   // Create a destination from user input
   async createDestinationFromInput(input: string, accessToken: string | null, userId: string): Promise<PostDestination> {
-    if (input.includes("communities")) {
-      // Extract community ID from URL
-      const communityMatch = input.match(/\/communities\/(\d+)/)
-      const communityId = communityMatch?.[1]
+    // Check if input is a community URL
+    if (validateCommunityUrl(input)) {
+      const communityId = extractCommunityId(input)
+      if (!communityId) {
+        throw new Error("Invalid community URL format")
+      }
 
-      if (communityId && accessToken) {
+      // If we have access token, try to get community info
+      if (accessToken) {
         try {
-          // Get credentials and try to lookup community name
           const credentials = await getEffectiveCredentials("x", userId)
           if (credentials) {
             const communityName = await this.lookupCommunityName(communityId, accessToken, credentials)
-
             if (communityName) {
               return {
                 type: "community",
@@ -254,8 +242,8 @@ export class XPlatform extends BaseSocialPlatform {
         }
       }
 
-      // Fallback to generated name
-      const shortId = communityId ? communityId.slice(-6) : "Unknown"
+      // Fallback to basic community destination
+      const shortId = communityId.slice(-6)
       return {
         type: "community",
         id: input,
@@ -264,11 +252,12 @@ export class XPlatform extends BaseSocialPlatform {
       }
     }
 
+    // Default to public timeline
     return {
-      type: "custom",
-      id: input,
-      name: input,
-      description: "Custom destination"
+      type: "public",
+      id: "public",
+      name: "Public Timeline",
+      description: "Post to your public timeline"
     }
   }
 
@@ -277,7 +266,7 @@ export class XPlatform extends BaseSocialPlatform {
     effectiveCredentials: { clientId: string; clientSecret: string }
   ): Promise<Omit<InsertPost, "userId" | "integrationId">[]> {
     try {
-      const { token, secret } = this.parseAccessToken(accessToken)
+      const { token, secret } = parseAccessToken(accessToken)
 
       const client = new TwitterApi({
         appKey: effectiveCredentials.clientId,
