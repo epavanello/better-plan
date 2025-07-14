@@ -105,6 +105,7 @@ function IntegrationsComponent() {
           platform={setupPlatform}
           platformDisplayName={platformInfo.displayName}
           redirectUrl={setupInfo.redirectUrl || null}
+          platformInfo={platformInfo}
           onComplete={handleSetupComplete}
           onCancel={() => setSetupPlatform(null)}
         />

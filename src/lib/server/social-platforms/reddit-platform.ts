@@ -10,7 +10,9 @@ import {
   type PostDestination,
   type PostDestinationSearchResult,
   type PostResult,
-  type RequiredField
+  type RequiredField,
+  type SetupCredentialLabels,
+  type SetupGuideStep
 } from "./base-platform"
 import { RedditApiClient } from "./reddit/reddit-api-client"
 import { buildRedditAuthUrl, normalizeSubredditName } from "./reddit/reddit-utils"
@@ -24,6 +26,54 @@ export class RedditPlatform extends BaseSocialPlatform {
 
   getDisplayName(): string {
     return "Reddit"
+  }
+
+  // Setup information methods
+  getSetupDescription(): string {
+    return "To connect your Reddit account, you need to first create a Reddit app and enter your credentials here. We'll validate them before saving."
+  }
+
+  getSetupGuideSteps(): SetupGuideStep[] {
+    return [
+      {
+        text: "Go to Reddit Apps page",
+        details: [this.getDeveloperUrl()!]
+      },
+      {
+        text: "Create a new app",
+        details: ["Click 'Create App' or 'Create Another App'", "Choose 'web app' as the app type", "Fill in app name and description"]
+      },
+      {
+        text: "Copy the Client ID and Client Secret",
+        details: ["Client ID is the string under your app name", "Client Secret is shown in the 'secret' field"]
+      },
+      {
+        text: "Paste the credentials in the form below"
+      }
+    ]
+  }
+
+  getCredentialLabels(): SetupCredentialLabels {
+    return {
+      clientId: "Client ID",
+      clientSecret: "Client Secret"
+    }
+  }
+
+  getCallbackUrlDescription(): string {
+    return "Use this URL as your app's redirect URI in the Reddit app settings"
+  }
+
+  getShowGuideByDefault(): boolean {
+    return false
+  }
+
+  getValidationErrorHelp(): string[] {
+    return [
+      "The Client ID and Secret are correct",
+      "Your app is configured as a 'web app'",
+      "The redirect URI matches exactly (including protocol and port)"
+    ]
   }
 
   supportsFetchingRecentPosts(): boolean {

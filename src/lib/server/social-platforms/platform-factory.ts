@@ -120,7 +120,8 @@ export class PlatformFactory {
         displayName: platformInstance.getDisplayName(),
         requiresSetup: platformInstance.requiresSetup(),
         isImplemented: platformInstance.isImplemented(),
-        requiredFields: platformInstance.getRequiredFields()
+        requiredFields: platformInstance.getRequiredFields(),
+        setupInformation: platformInstance.getSetupInformation()
       }
     } catch {
       return {
@@ -132,7 +133,8 @@ export class PlatformFactory {
         displayName: platform.charAt(0).toUpperCase() + platform.slice(1),
         requiresSetup: false,
         isImplemented: false,
-        requiredFields: []
+        requiredFields: [],
+        setupInformation: undefined
       }
     }
   }

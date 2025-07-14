@@ -4,7 +4,14 @@ import { envConfig } from "@/lib/env"
 import { setCookie } from "@tanstack/react-start/server"
 import { type SendTweetV2Params, TwitterApi } from "twitter-api-v2"
 import { getEffectiveCredentials } from "../integrations"
-import { BaseSocialPlatform, type PostData, type PostDestination, type PostResult } from "./base-platform"
+import {
+  BaseSocialPlatform,
+  type PostData,
+  type PostDestination,
+  type PostResult,
+  type SetupCredentialLabels,
+  type SetupGuideStep
+} from "./base-platform"
 import { extractCommunityId, parseAccessToken, validateCommunityUrl } from "./x/x-utils"
 
 export class XPlatform extends BaseSocialPlatform {
@@ -14,6 +21,52 @@ export class XPlatform extends BaseSocialPlatform {
 
   getDisplayName(): string {
     return "X (Twitter)"
+  }
+
+  // Setup information methods
+  getSetupDescription(): string {
+    return "To connect your X account, you need to first create a Twitter app and enter your credentials here. We'll validate them before saving."
+  }
+
+  getSetupGuideSteps(): SetupGuideStep[] {
+    return [
+      {
+        text: "Go to Twitter Developer Portal",
+        details: [this.getDeveloperUrl()!]
+      },
+      {
+        text: "Create a new project and app"
+      },
+      {
+        text: "In your app settings, configure:",
+        details: ["App permissions: Read and write", "Type of App: Web App"]
+      },
+      {
+        text: "Copy the API Key (Client ID) and API Secret (Client Secret)"
+      },
+      {
+        text: "Paste the credentials in the form below"
+      }
+    ]
+  }
+
+  getCredentialLabels(): SetupCredentialLabels {
+    return {
+      clientId: "API Key (Client ID)",
+      clientSecret: "API Secret (Client Secret)"
+    }
+  }
+
+  getCallbackUrlDescription(): string {
+    return "Use this URL as your app's callback URL in the Twitter Developer Portal"
+  }
+
+  getShowGuideByDefault(): boolean {
+    return false
+  }
+
+  getValidationErrorHelp(): string[] {
+    return ["The API Key and Secret are correct", 'Your app has "Read and write" permissions', "The callback URL is properly configured"]
   }
 
   supportsFetchingRecentPosts(): boolean {

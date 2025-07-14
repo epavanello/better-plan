@@ -50,6 +50,27 @@ export interface PostData {
   }
 }
 
+export interface SetupCredentialLabels {
+  clientId: string
+  clientSecret: string
+}
+
+export interface SetupGuideStep {
+  text: string
+  details?: string[]
+  isCode?: boolean
+}
+
+export interface SetupInformation {
+  description?: string
+  guideSteps?: SetupGuideStep[]
+  credentialLabels?: SetupCredentialLabels
+  developerUrl?: string
+  callbackUrlDescription?: string
+  showGuideByDefault?: boolean
+  validationErrorHelp?: string[]
+}
+
 export interface PlatformInfo {
   name: Platform
   displayName: string
@@ -60,6 +81,7 @@ export interface PlatformInfo {
   destinationHelpText?: string
   destinationPlaceholder?: string
   requiredFields?: RequiredField[] // Additional fields required by this platform
+  setupInformation?: SetupInformation // Added setup information
 }
 
 export abstract class BaseSocialPlatform {
@@ -157,6 +179,76 @@ export abstract class BaseSocialPlatform {
     return true
   }
 
+  // Setup information methods - override in specific platforms
+  getSetupInformation(): SetupInformation | undefined {
+    const description = this.getSetupDescription()
+    const guideSteps = this.getSetupGuideSteps()
+    const credentialLabels = this.getCredentialLabels()
+    const developerUrl = this.getDeveloperUrl()
+    const callbackUrlDescription = this.getCallbackUrlDescription()
+    const showGuideByDefault = this.getShowGuideByDefault()
+    const validationErrorHelp = this.getValidationErrorHelp()
+
+    // Return setup information only if at least one piece of information is available
+    if (
+      description ||
+      guideSteps ||
+      credentialLabels ||
+      developerUrl ||
+      callbackUrlDescription ||
+      showGuideByDefault ||
+      validationErrorHelp
+    ) {
+      return {
+        description,
+        guideSteps,
+        credentialLabels,
+        developerUrl,
+        callbackUrlDescription,
+        showGuideByDefault,
+        validationErrorHelp
+      }
+    }
+    return undefined
+  }
+
+  getSetupDescription(): string | undefined {
+    return undefined
+  }
+
+  getSetupGuideSteps(): SetupGuideStep[] | undefined {
+    return undefined
+  }
+
+  getCredentialLabels(): SetupCredentialLabels | undefined {
+    return undefined
+  }
+
+  getDeveloperUrl(): string | undefined {
+    const urls: Record<Platform, string> = {
+      x: "https://developer.twitter.com/en/portal/dashboard",
+      reddit: "https://www.reddit.com/prefs/apps",
+      linkedin: "https://www.linkedin.com/developers/apps",
+      facebook: "https://developers.facebook.com/apps",
+      instagram: "https://developers.facebook.com/apps",
+      youtube: "https://console.developers.google.com/",
+      tiktok: "https://developers.tiktok.com/"
+    }
+    return urls[this.name] || undefined
+  }
+
+  getCallbackUrlDescription(): string | undefined {
+    return undefined
+  }
+
+  getShowGuideByDefault(): boolean {
+    return false
+  }
+
+  getValidationErrorHelp(): string[] | undefined {
+    return undefined
+  }
+
   getPlatformInfo(): PlatformInfo {
     return {
       name: this.name,
@@ -167,7 +259,8 @@ export abstract class BaseSocialPlatform {
       destinationRequired: this.requiresDestination(),
       destinationHelpText: this.getDestinationHelpText(),
       destinationPlaceholder: this.getDestinationPlaceholder(),
-      requiredFields: this.getRequiredFields()
+      requiredFields: this.getRequiredFields(),
+      setupInformation: this.getSetupInformation()
     }
   }
 
