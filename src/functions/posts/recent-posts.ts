@@ -1,0 +1,104 @@
+import { db } from "@/database/db"
+import { posts } from "@/database/schema"
+import { integrations } from "@/database/schema/integrations"
+import { getSessionOrThrow } from "@/lib/auth"
+import { getEffectiveCredentials } from "@/lib/server/integrations"
+import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
+import { createServerFn } from "@tanstack/react-start"
+import { and, eq, sql } from "drizzle-orm"
+import { z } from "zod"
+
+const fetchRecentSocialPostsSchema = z.object({
+  integrationId: z.string()
+})
+
+export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
+  .validator(fetchRecentSocialPostsSchema)
+  .handler(async ({ data }) => {
+    const session = await getSessionOrThrow()
+
+    const [integration] = await db
+      .select()
+      .from(integrations)
+      .where(and(eq(integrations.id, data.integrationId), eq(integrations.userId, session.user.id)))
+
+    if (!integration) {
+      throw new Error("Integration not found")
+    }
+
+    const platform = PlatformFactory.getPlatform(integration.platform)
+
+    if (!platform.supportsFetchingRecentPosts()) {
+      throw new Error("This platform does not support fetching recent posts.")
+    }
+
+    if (!integration.accessToken) {
+      throw new Error("Integration is not properly configured.")
+    }
+
+    const credentials = await getEffectiveCredentials(integration.platform, session.user.id)
+
+    if (!credentials) {
+      throw new Error("Integration is not properly configured.")
+    }
+
+    const recentPosts = await platform.fetchRecentPosts(integration.accessToken, credentials)
+
+    if (recentPosts.length === 0) {
+      return { message: "No new posts to import." }
+    }
+
+    // Get existing posts for this integration to check for duplicates
+    const existingPosts = await db
+      .select({
+        content: posts.content,
+        postUrl: posts.postUrl
+      })
+      .from(posts)
+      .where(and(eq(posts.integrationId, integration.id), eq(posts.userId, session.user.id), eq(posts.status, "posted")))
+
+    // Create a set of existing content and URLs for fast lookup
+    const existingContentSet = new Set(existingPosts.map((p) => p.content))
+    const existingUrlSet = new Set(existingPosts.map((p) => p.postUrl).filter(Boolean))
+
+    // Filter out posts that already exist (by content or URL)
+    const newPosts = recentPosts.filter((post) => {
+      const isDuplicateContent = existingContentSet.has(post.content)
+      const isDuplicateUrl = post.postUrl && existingUrlSet.has(post.postUrl)
+
+      return !isDuplicateContent && !isDuplicateUrl
+    })
+
+    if (newPosts.length === 0) {
+      return { message: "No new posts to import. All recent posts already exist in the system." }
+    }
+
+    const postToUpsert = newPosts.map((p) => ({
+      ...p,
+      integrationId: integration.id,
+      userId: session.user.id
+    }))
+
+    await db
+      .insert(posts)
+      .values(postToUpsert)
+      .onConflictDoUpdate({
+        target: [posts.id],
+        set: {
+          content: sql.raw(`excluded.${posts.content.name}`),
+          source: sql.raw(`excluded.${posts.source.name}`),
+          postUrl: sql.raw(`excluded.${posts.postUrl.name}`),
+          status: sql.raw(`excluded.${posts.status.name}`),
+          createdAt: sql.raw(`excluded.${posts.createdAt.name}`),
+          postedAt: sql.raw(`excluded.${posts.postedAt.name}`),
+          updatedAt: new Date(),
+          scheduledAt: null,
+          failCount: 0,
+          failReason: null
+        }
+      })
+
+    return {
+      message: `${newPosts.length} new posts imported successfully. ${recentPosts.length - newPosts.length} duplicates were skipped.`
+    }
+  })
