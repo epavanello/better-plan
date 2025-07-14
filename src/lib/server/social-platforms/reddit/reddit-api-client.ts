@@ -29,20 +29,21 @@ export class RedditApiClient {
     redirectUri: string,
     credentials: { clientId: string; clientSecret: string }
   ): Promise<{ accessToken: string; refreshToken?: string }> {
-    const basicAuth = btoa(`${credentials.clientId}:${credentials.clientSecret}`)
+    const auth = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString("base64")
+
+    const formData = new URLSearchParams()
+    formData.append("grant_type", "authorization_code")
+    formData.append("code", code)
+    formData.append("redirect_uri", redirectUri)
 
     const response = await fetch(this.tokenUrl, {
       method: "POST",
       headers: {
-        Authorization: `Basic ${basicAuth}`,
+        Authorization: `Basic ${auth}`,
         "Content-Type": "application/x-www-form-urlencoded",
         "User-Agent": "BetterPlan/1.0"
       },
-      body: new URLSearchParams({
-        grant_type: "authorization_code",
-        code,
-        redirect_uri: redirectUri
-      })
+      body: formData
     })
 
     if (!response.ok) {
@@ -108,47 +109,56 @@ export class RedditApiClient {
     isLinkPost = false,
     url?: string
   ): Promise<{ id: string; permalink: string }> {
-    const formData = new URLSearchParams({
-      sr: subreddit,
-      title,
-      api_type: "json"
-    })
+    // Prepare form data
+    const formData = new FormData()
+    formData.append("sr", subreddit)
+    formData.append("title", title)
+    formData.append("kind", isLinkPost ? "link" : "self")
+    formData.append("api_type", "json")
 
     if (isLinkPost && url) {
-      formData.set("url", url)
+      formData.append("url", url)
     } else {
-      formData.set("text", content)
+      // For text posts, use the content as text body
+      formData.append("text", content)
     }
 
     const response = await this.makeRequest("/api/submit", accessToken, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded"
-      },
       body: formData
     })
 
     const result: RedditSubmissionResponse = await response.json()
 
     if (result.json.errors && result.json.errors.length > 0) {
-      throw new Error(`Reddit submission failed: ${result.json.errors.join(", ")}`)
+      throw new Error(`Reddit API error: ${result.json.errors[0][1]}`)
     }
 
-    if (!result.json.data) {
-      throw new Error("Reddit submission failed: No data returned")
+    if (!result.json.data?.things?.[0]?.data?.id) {
+      throw new Error("Failed to create Reddit post: No post ID returned")
     }
 
-    const submission = result.json.data.things[0]
+    const postId = result.json.data.things[0].data.id
+    const postUrl = `https://www.reddit.com/r/${subreddit}/comments/${postId}/`
+
     return {
-      id: submission.data.id,
-      permalink: submission.data.url
+      id: postId,
+      permalink: postUrl
     }
   }
 
   async getRecentPosts(accessToken: string, limit = 10): Promise<RedditSubmission[]> {
-    const response = await this.makeRequest(`/user/me/submitted?limit=${limit}`, accessToken)
+    const response = await this.makeRequest(`/user/me/submitted?limit=${limit}&sort=new`, accessToken)
     const data = await response.json()
 
-    return data.data.children.map((child: { data: RedditSubmission }) => child.data)
+    const posts: RedditSubmission[] = []
+
+    if (data.data?.children) {
+      for (const child of data.data.children) {
+        posts.push(child.data)
+      }
+    }
+
+    return posts
   }
 }
