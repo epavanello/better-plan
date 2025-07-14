@@ -1,9 +1,9 @@
 // Re-export all integration-related functions from the new modular structure
-export { getIntegrations, deleteIntegration } from "./integrations/integration-management"
+export { getIntegrations, deleteIntegration } from "./integration-management"
 export { 
   getPlatformRequiresUserCredentials, 
   getUserPlatformStatus, 
   getUserAppCredentials, 
   saveUserAppCredentials, 
   deleteUserAppCredentials 
-} from "./integrations/platform-credentials"
+} from "./platform-credentials"
