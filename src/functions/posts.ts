@@ -1,10 +1,11 @@
 import { db } from "@/database/db"
-import { type InsertPost, type InsertPostDestination, postDestinations, posts } from "@/database/schema"
+import { type InsertPost, posts } from "@/database/schema"
 import { PLATFORM_VALUES, type Platform, integrations } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { getEffectiveCredentials } from "@/lib/server/integrations"
 import { postToSocialMedia } from "@/lib/server/post-service"
-import type { PostDestination } from "@/lib/server/social-platforms/base-platform"
+import { PostDestinationService } from "@/lib/server/posts/destination-service"
+import { DestinationSchema } from "@/lib/server/social-platforms/base-platform"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
 import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, sql } from "drizzle-orm"
@@ -14,15 +15,7 @@ const createPostSchema = z.object({
   integrationId: z.string(),
   content: z.string(),
   scheduledAt: z.date().optional(),
-  destination: z
-    .object({
-      type: z.string(),
-      id: z.string(),
-      name: z.string(),
-      metadata: z.record(z.any()).optional(),
-      description: z.string().optional()
-    })
-    .optional(),
+  destination: DestinationSchema.optional(),
   additionalFields: z.record(z.string()).optional()
 })
 
@@ -30,6 +23,7 @@ export const createPost = createServerFn({ method: "POST" })
   .validator(createPostSchema)
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
+    const destinationService = new PostDestinationService()
 
     const integration = await db.query.integrations.findFirst({
       where: (integrations, { eq, and }) => and(eq(integrations.id, data.integrationId), eq(integrations.userId, session.user.id))
@@ -69,7 +63,7 @@ export const createPost = createServerFn({ method: "POST" })
 
     // Save destination to recent destinations if provided
     if (data.destination) {
-      await saveRecentDestination(session.user.id, integration.platform, data.destination)
+      await destinationService.saveRecentDestination(session.user.id, integration.platform, data.destination)
     }
 
     // If it's a draft, try to post immediately
@@ -105,69 +99,15 @@ export const createPost = createServerFn({ method: "POST" })
     return post
   })
 
-async function saveRecentDestination(userId: string, platform: Platform, destination: PostDestination): Promise<void> {
-  const existingDestination = await db.query.postDestinations.findFirst({
-    where: (postDestinations, { eq, and }) =>
-      and(eq(postDestinations.userId, userId), eq(postDestinations.platform, platform), eq(postDestinations.destinationId, destination.id))
-  })
-
-  if (existingDestination) {
-    // Update existing destination
-    await db
-      .update(postDestinations)
-      .set({
-        useCount: sql`${postDestinations.useCount} + 1`,
-        lastUsedAt: new Date(),
-        destinationName: destination.name,
-        destinationMetadata: destination.metadata ? JSON.stringify(destination.metadata) : undefined,
-        updatedAt: new Date()
-      })
-      .where(eq(postDestinations.id, existingDestination.id))
-  } else {
-    // Create new destination
-    const newDestination: InsertPostDestination = {
-      userId,
-      platform,
-      destinationType: destination.type,
-      destinationId: destination.id,
-      destinationName: destination.name,
-      destinationMetadata: destination.metadata ? JSON.stringify(destination.metadata) : undefined,
-      lastUsedAt: new Date(),
-      useCount: 1
-    }
-    await db.insert(postDestinations).values(newDestination)
-  }
-}
-
 export const getRecentDestinations = createServerFn({ method: "POST" })
   .validator((payload: { platform: Platform; limit?: number }) =>
     z.object({ platform: z.enum(PLATFORM_VALUES), limit: z.number().optional() }).parse(payload)
   )
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
+    const destinationService = new PostDestinationService()
 
-    const recentDestinations = await db.query.postDestinations.findMany({
-      where: (postDestinations, { eq, and }) =>
-        and(eq(postDestinations.userId, session.user.id), eq(postDestinations.platform, data.platform)),
-      orderBy: (postDestinations, { desc }) => desc(postDestinations.lastUsedAt),
-      limit: data.limit || 10
-    })
-
-    return recentDestinations.map((dest) => {
-      let metadata: Record<string, unknown> | undefined
-      try {
-        metadata = dest.destinationMetadata ? JSON.parse(dest.destinationMetadata) : undefined
-      } catch {
-        metadata = undefined
-      }
-
-      return {
-        type: dest.destinationType,
-        id: dest.destinationId,
-        name: dest.destinationName,
-        description: metadata?.description as string | undefined
-      }
-    })
+    return await destinationService.getRecentDestinations(session.user.id, data.platform, data.limit || 10)
   })
 
 export const createDestinationFromInput = createServerFn({ method: "POST" })
