@@ -12,6 +12,29 @@ interface PostsListProps {
   onDeletePost: (postId: string) => void
 }
 
+// Utility function to convert URLs in text to clickable links
+function renderContentWithLinks(content: string) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g
+  const parts = content.split(urlRegex)
+
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="break-all text-blue-600 underline hover:text-blue-800"
+        >
+          {part}
+        </a>
+      )
+    }
+    return part
+  })
+}
+
 export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
   if (isPending) {
     return (
@@ -36,11 +59,11 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
           const now = new Date()
 
           return (
-            <div key={post.id} className="p-4">
-              <div className="mb-2 flex items-center justify-between text-muted-foreground text-sm">
-                <div className="flex items-center gap-2">
+            <div key={post.id} className="@container p-4">
+              <div className="mb-2 flex @[30rem]:flex-row flex-col items-start @[30rem]:items-center justify-between gap-y-2 text-muted-foreground text-sm">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   {platformIcons[post.integration.platform]}
-                  {post.integration.platformAccountName}
+                  <span className="font-medium">{post.integration.platformAccountName}</span>
                   {post.destinationName && (
                     <>
                       {" → "}
@@ -50,54 +73,56 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
                   {" - "}
                   <span className="capitalize">{post.status}</span>
                   {post.status === "scheduled" && post.scheduledAt && (
-                    <span className="text-blue-600">(scheduled for {formatRelative(post.scheduledAt, now)})</span>
+                    <span className="text-blue-600">({formatRelative(post.scheduledAt, now)})</span>
                   )}
                   {post.source === "imported" && (
                     <span className="ml-2 rounded-full bg-gray-200 px-2 py-0.5 text-xs dark:bg-gray-700">Imported</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex @[30rem]:w-auto w-full items-center @[30rem]:justify-start justify-between gap-2">
                   <time title={post.createdAt.toLocaleString()} dateTime={post.createdAt.toISOString()}>
                     {formatRelative(post.createdAt, now)}
                   </time>
-                  {post.postUrl && (
-                    <a
-                      href={post.postUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <ExternalLink className="h-4 w-4" />
-                    </a>
-                  )}
-                  {post.status === "scheduled" && (
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <Trash2 />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64" side="bottom">
-                        <div className="space-y-2">
-                          <h4 className="font-medium text-sm">Delete Post</h4>
-                          <p className="text-muted-foreground text-xs">Are you sure you want to delete this scheduled post?</p>
-                          <div className="flex justify-end gap-2">
-                            <PopoverClose asChild>
-                              <Button variant="ghost" size="sm">
-                                Cancel
+                  <div className="flex items-center gap-2">
+                    {post.postUrl && (
+                      <a
+                        href={post.postUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-muted-foreground hover:text-foreground"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                      </a>
+                    )}
+                    {post.status === "scheduled" && (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-64" side="bottom">
+                          <div className="space-y-2">
+                            <h4 className="font-medium text-sm">Delete Post</h4>
+                            <p className="text-muted-foreground text-xs">Are you sure you want to delete this scheduled post?</p>
+                            <div className="flex justify-end gap-2">
+                              <PopoverClose asChild>
+                                <Button variant="ghost" size="sm">
+                                  Cancel
+                                </Button>
+                              </PopoverClose>
+                              <Button variant="destructive" size="sm" onClick={() => onDeletePost(post.id)}>
+                                Delete
                               </Button>
-                            </PopoverClose>
-                            <Button variant="destructive" size="sm" onClick={() => onDeletePost(post.id)}>
-                              Delete
-                            </Button>
+                            </div>
                           </div>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                  )}
+                        </PopoverContent>
+                      </Popover>
+                    )}
+                  </div>
                 </div>
               </div>
-              <p className="whitespace-pre-wrap">{post.content}</p>
+              <p className="whitespace-pre-wrap">{renderContentWithLinks(post.content)}</p>
             </div>
           )
         })}

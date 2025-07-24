@@ -184,10 +184,10 @@ function RouteComponent() {
           </div>
         ) : (
           // Responsive layout: single column on mobile, two columns on desktop
-          <div className="space-y-6 lg:grid lg:grid-cols-3 lg:gap-6 lg:space-y-0">
+          <div className="space-y-6 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0">
             {/* Create Post Section - Takes 2 columns on desktop */}
-            <div className="lg:col-span-2">
-              <div className="lg:sticky lg:top-44">
+            <div className="xl:col-span-2">
+              <div className="xl:sticky xl:top-44">
                 <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
                   <div className="flex items-center gap-2">
                     <PenTool className="h-5 w-5" />
@@ -215,7 +215,7 @@ function RouteComponent() {
             </div>
 
             {/* Posts List Section - Takes 1 column on desktop */}
-            <div className="lg:col-span-1">
+            <div className="xl:col-span-1">
               <div className="space-y-4">
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-2">

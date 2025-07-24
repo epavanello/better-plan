@@ -125,6 +125,11 @@ export function CreatePostForm({
       destination: selectedDestination,
       additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
     })
+
+    // Reset form after successful submission
+    setContent("")
+    setScheduledDateTime("")
+    setIsScheduleMode(false)
   }
 
   const handleCustomDestination = () => {
