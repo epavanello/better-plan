@@ -3,8 +3,11 @@ import { initializeNativeScheduler } from "@/lib/server/native-scheduler"
 import { createStartHandler, defaultStreamHandler } from "@tanstack/react-start/server"
 import { createRouter } from "./router"
 
-runMigrations()
-initializeNativeScheduler()
+if (!globalThis.app_initialized) {
+  runMigrations()
+  initializeNativeScheduler()
+  globalThis.app_initialized = true
+}
 
 export default createStartHandler({
   createRouter
