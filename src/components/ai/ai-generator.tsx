@@ -34,6 +34,10 @@ interface AiGeneratorProps {
   selectedIntegrationId: string | undefined
   isPostCreationPending: boolean
   currentContent: string
+  platformInfo?: {
+    displayName: string
+    maxCharacterLimit?: number
+  }
   onContentGenerated: (content: string) => void
   onValidationError: (message: string) => void
   onIsGeneratingChange: (isGenerating: boolean) => void
@@ -43,6 +47,7 @@ export function AiGenerator({
   selectedIntegrationId,
   isPostCreationPending,
   currentContent,
+  platformInfo,
   onContentGenerated,
   onValidationError,
   onIsGeneratingChange
@@ -114,9 +119,15 @@ export function AiGenerator({
       return
     }
 
+    // Add character limit information to the prompt if available
+    let enhancedPrompt = iterationInstruction || aiPrompt
+    if (platformInfo?.maxCharacterLimit) {
+      enhancedPrompt += `\n\nIMPORTANT: Keep the response under ${platformInfo.maxCharacterLimit} characters for ${platformInfo.displayName}.`
+    }
+
     generateContent({
       data: {
-        prompt: iterationInstruction || aiPrompt,
+        prompt: enhancedPrompt,
         integrationId: selectedIntegrationId,
         temperature: aiParameters.temperature,
         maxTokens: aiParameters.maxTokens,
@@ -149,7 +160,14 @@ export function AiGenerator({
     }
 
     if (currentContent && adjustmentPrompts[adjustment]) {
-      handleGenerateAiContent(adjustmentPrompts[adjustment], currentContent)
+      let prompt = adjustmentPrompts[adjustment]
+
+      // Add character limit information if available
+      if (platformInfo?.maxCharacterLimit) {
+        prompt += `\n\nIMPORTANT: Keep the response under ${platformInfo.maxCharacterLimit} characters for ${platformInfo.displayName}.`
+      }
+
+      handleGenerateAiContent(prompt, currentContent)
     }
   }
 

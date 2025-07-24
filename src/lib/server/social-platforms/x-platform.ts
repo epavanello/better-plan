@@ -69,6 +69,10 @@ export class XPlatform extends BaseSocialPlatform {
     return ["The API Key and Secret are correct", 'Your app has "Read and write" permissions', "The callback URL is properly configured"]
   }
 
+  getMaxCharacterLimit(): number {
+    return 280
+  }
+
   supportsFetchingRecentPosts(): boolean {
     return true
   }

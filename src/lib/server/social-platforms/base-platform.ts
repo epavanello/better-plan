@@ -82,6 +82,7 @@ export interface PlatformInfo {
   destinationPlaceholder?: string
   requiredFields?: RequiredField[] // Additional fields required by this platform
   setupInformation?: SetupInformation // Added setup information
+  maxCharacterLimit?: number // Maximum characters allowed for posts
 }
 
 export abstract class BaseSocialPlatform {
@@ -249,6 +250,10 @@ export abstract class BaseSocialPlatform {
     return undefined
   }
 
+  getMaxCharacterLimit(): number | undefined {
+    return undefined
+  }
+
   getPlatformInfo(): PlatformInfo {
     return {
       name: this.name,
@@ -260,7 +265,8 @@ export abstract class BaseSocialPlatform {
       destinationHelpText: this.getDestinationHelpText(),
       destinationPlaceholder: this.getDestinationPlaceholder(),
       requiredFields: this.getRequiredFields(),
-      setupInformation: this.getSetupInformation()
+      setupInformation: this.getSetupInformation(),
+      maxCharacterLimit: this.getMaxCharacterLimit()
     }
   }
 

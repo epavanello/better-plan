@@ -30,7 +30,7 @@ class NotImplementedPlatform extends BaseSocialPlatform {
 }
 
 // Registry delle piattaforme supportate
-const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new (name: Platform): BaseSocialPlatform }> = {
+const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new(name: Platform): BaseSocialPlatform }> = {
   x: XPlatform,
   reddit: RedditPlatform,
   instagram: class extends NotImplementedPlatform {
@@ -121,7 +121,8 @@ export class PlatformFactory {
         requiresSetup: platformInstance.requiresSetup(),
         isImplemented: platformInstance.isImplemented(),
         requiredFields: platformInstance.getRequiredFields(),
-        setupInformation: platformInstance.getSetupInformation()
+        setupInformation: platformInstance.getSetupInformation(),
+        maxCharacterLimit: platformInstance.getMaxCharacterLimit()
       }
     } catch {
       return {
@@ -134,7 +135,8 @@ export class PlatformFactory {
         requiresSetup: false,
         isImplemented: false,
         requiredFields: [],
-        setupInformation: undefined
+        setupInformation: undefined,
+        maxCharacterLimit: undefined
       }
     }
   }

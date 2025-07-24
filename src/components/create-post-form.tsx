@@ -86,6 +86,10 @@ export function CreatePostForm({
       onValidationError("Please enter some content.")
       return
     }
+    if (platformInfo?.maxCharacterLimit && content.length > platformInfo.maxCharacterLimit) {
+      onValidationError(`Content exceeds the ${platformInfo.maxCharacterLimit} character limit for ${platformInfo.displayName}.`)
+      return
+    }
     if (platformInfo?.destinationRequired && !selectedDestination) {
       onValidationError("Please select a destination.")
       return
@@ -229,7 +233,8 @@ export function CreatePostForm({
     !isPending &&
     !isAiGenerating &&
     (!platformInfo?.destinationRequired || selectedDestination) &&
-    (!isScheduleMode || scheduledDateTime)
+    (!isScheduleMode || scheduledDateTime) &&
+    (!platformInfo?.maxCharacterLimit || content.length <= platformInfo.maxCharacterLimit)
 
   const handleTabChange = (value: string) => {
     setIsScheduleMode(value === "schedule")
@@ -242,6 +247,7 @@ export function CreatePostForm({
         selectedIntegrationId={selectedIntegrationId}
         isPostCreationPending={isPending}
         currentContent={content}
+        platformInfo={platformInfo}
         onContentGenerated={setContent}
         onValidationError={onValidationError}
         onIsGeneratingChange={setIsAiGenerating}
@@ -258,6 +264,16 @@ export function CreatePostForm({
           disabled={isAiGenerating}
           className="min-h-[120px]"
         />
+        {platformInfo?.maxCharacterLimit && (
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">
+              {content.length} / {platformInfo.maxCharacterLimit} characters
+            </span>
+            {content.length > platformInfo.maxCharacterLimit && (
+              <span className="font-medium text-red-500">{content.length - platformInfo.maxCharacterLimit} characters over limit</span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Destination Selection - Only show if platform supports destinations */}
