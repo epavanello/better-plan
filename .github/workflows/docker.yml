@@ -46,7 +46,9 @@ jobs:
       with:
         images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
         tags: |
-          # Set latest tag for default branch
+          # Set latest tag for main branch
+          type=raw,value=latest,enable={{is_default_branch}}
+          # Set branch names as tags
           type=ref,event=branch
           type=ref,event=pr
           # Set version tag for releases
