@@ -12,18 +12,30 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Download, List, PenTool } from "lucide-react"
 import { useMemo, useState } from "react"
 import { toast } from "sonner"
+import { z } from "zod"
 
 export const Route = createFileRoute("/_protected/app/write")({
   loader: async () => {
     const integrations = await getIntegrations()
     return { integrations }
   },
+  validateSearch: z.object({
+    scheduledDate: z.string().optional()
+  }),
   component: RouteComponent
 })
 
 function RouteComponent() {
   const { integrations } = Route.useLoaderData()
+  const { scheduledDate } = Route.useSearch()
   const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>()
+
+  // Parse the scheduled date from URL parameter
+  const initialScheduledDate = useMemo(() => {
+    if (!scheduledDate) return undefined
+    const date = new Date(scheduledDate)
+    return Number.isNaN(date.getTime()) ? undefined : date
+  }, [scheduledDate])
 
   const {
     data: posts = [],
@@ -52,7 +64,6 @@ function RouteComponent() {
     mutationFn: createPost,
     onSuccess: (_, { data: { scheduledAt } }) => {
       toast.success(scheduledAt ? "Post scheduled successfully!" : "Post published successfully!")
-      handleClear()
       refetchPosts()
     },
     onError: (error: Error) => {
@@ -106,10 +117,6 @@ function RouteComponent() {
         additionalFields: data.additionalFields
       }
     })
-  }
-
-  const handleClear = () => {
-    // This will be handled by the CreatePostForm component
   }
 
   const handleValidationError = (message: string) => {
@@ -197,8 +204,8 @@ function RouteComponent() {
                   currentPlatform={currentIntegration?.platform}
                   platformInfo={platformInfo}
                   isPending={isPending}
+                  initialScheduledDate={initialScheduledDate}
                   onCreatePost={handleCreatePost}
-                  onClear={handleClear}
                   onValidationError={handleValidationError}
                 />
               </div>

@@ -2,8 +2,8 @@ import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Platform } from "@/database/schema"
@@ -21,6 +21,7 @@ interface CreatePostFormProps {
   currentPlatform?: Platform
   platformInfo?: PlatformInfo
   isPending: boolean
+  initialScheduledDate?: Date
   onCreatePost: (data: {
     integrationId: string
     content: string
@@ -28,7 +29,6 @@ interface CreatePostFormProps {
     destination?: PostDestination
     additionalFields?: Record<string, string>
   }) => void
-  onClear: () => void
   onValidationError: (message: string) => void
 }
 
@@ -57,14 +57,13 @@ export function CreatePostForm({
   currentPlatform,
   platformInfo,
   isPending,
+  initialScheduledDate,
   onCreatePost,
-  onClear,
   onValidationError
 }: CreatePostFormProps) {
   const [content, setContent] = useState("")
-  const [scheduledDateTime, setScheduledDateTime] = useState("")
-  const [isPublishPopoverOpen, setIsPublishPopoverOpen] = useState(false)
-  const [isSchedulePopoverOpen, setIsSchedulePopoverOpen] = useState(false)
+  const [scheduledDateTime, setScheduledDateTime] = useState(initialScheduledDate ? initialScheduledDate.toISOString().slice(0, 16) : "")
+  const [isScheduleMode, setIsScheduleMode] = useState(!!initialScheduledDate)
   const [aiPrompt, setAiPrompt] = useState("")
   const [showAiInput, setShowAiInput] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
@@ -184,7 +183,7 @@ export function CreatePostForm({
     setShowGenerationHistory(false)
   }
 
-  const handlePublishNow = () => {
+  const handleSubmit = () => {
     if (!selectedIntegrationId) {
       onValidationError("Please select a platform.")
       return
@@ -196,6 +195,19 @@ export function CreatePostForm({
     if (platformInfo?.destinationRequired && !selectedDestination) {
       onValidationError("Please select a destination.")
       return
+    }
+
+    // Validate schedule mode requirements
+    if (isScheduleMode) {
+      if (!scheduledDateTime) {
+        onValidationError("Please select a date and time for scheduling.")
+        return
+      }
+      const scheduledDate = new Date(scheduledDateTime)
+      if (scheduledDate <= new Date()) {
+        onValidationError("Scheduled time must be in the future.")
+        return
+      }
     }
 
     // Validate required fields
@@ -211,65 +223,10 @@ export function CreatePostForm({
     onCreatePost({
       integrationId: selectedIntegrationId,
       content,
-      scheduledAt: undefined,
+      scheduledAt: isScheduleMode ? new Date(scheduledDateTime) : undefined,
       destination: selectedDestination,
       additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
     })
-    setIsPublishPopoverOpen(false)
-  }
-
-  const handleSchedulePost = () => {
-    if (!selectedIntegrationId) {
-      onValidationError("Please select a platform.")
-      return
-    }
-    if (!content) {
-      onValidationError("Please enter some content.")
-      return
-    }
-    if (platformInfo?.destinationRequired && !selectedDestination) {
-      onValidationError("Please select a destination.")
-      return
-    }
-    if (!scheduledDateTime) {
-      onValidationError("Please select a date and time for scheduling.")
-      return
-    }
-    const scheduledDate = new Date(scheduledDateTime)
-    if (scheduledDate <= new Date()) {
-      onValidationError("Scheduled time must be in the future.")
-      return
-    }
-
-    // Validate required fields
-    if (platformInfo?.requiredFields) {
-      for (const field of platformInfo.requiredFields) {
-        if (field.required && !additionalFields[field.key]) {
-          onValidationError(`${field.label} is required.`)
-          return
-        }
-      }
-    }
-
-    onCreatePost({
-      integrationId: selectedIntegrationId,
-      content,
-      scheduledAt: scheduledDate,
-      destination: selectedDestination,
-      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
-    })
-    setIsSchedulePopoverOpen(false)
-  }
-
-  const handleClear = () => {
-    setContent("")
-    setAiPrompt("")
-    setScheduledDateTime("")
-    setSelectedDestination(undefined)
-    setCustomDestination("")
-    setShowCustomDestination(false)
-    setAdditionalFields({})
-    onClear()
   }
 
   const handleCustomDestination = () => {
@@ -372,7 +329,16 @@ export function CreatePostForm({
     )
   }
 
-  const canSubmit = selectedIntegrationId && content && !isPending && (!platformInfo?.destinationRequired || selectedDestination)
+  const canSubmit =
+    selectedIntegrationId &&
+    content &&
+    !isPending &&
+    (!platformInfo?.destinationRequired || selectedDestination) &&
+    (!isScheduleMode || scheduledDateTime)
+
+  const handleTabChange = (value: string) => {
+    setIsScheduleMode(value === "schedule")
+  }
   const isAiAvailable = aiAccess?.canAccess
   const aiUnavailableReason = aiAccess?.reason
 
@@ -852,88 +818,73 @@ export function CreatePostForm({
       {/* Additional Fields */}
       {renderAdditionalFields()}
 
-      {/* Action Buttons */}
-      <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:justify-end">
-        <Button variant="ghost" onClick={handleClear} disabled={isPending || isGenerating} className="sm:order-2">
-          <X className="mr-2 h-4 w-4" />
-          Clear
-        </Button>
-        <div className="flex gap-2 sm:order-1">
-          <Popover open={isPublishPopoverOpen} onOpenChange={setIsPublishPopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button disabled={!canSubmit || isGenerating} className="flex-1 sm:flex-none">
+      {/* Publish Options */}
+      <Tabs
+        defaultValue={isScheduleMode ? "schedule" : "now"}
+        value={isScheduleMode ? "schedule" : "now"}
+        onValueChange={handleTabChange}
+        className="w-full"
+      >
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="now" disabled={isPending || isGenerating}>
+            <Rocket className="mr-2 h-4 w-4" />
+            Post Now
+          </TabsTrigger>
+          <TabsTrigger value="schedule" disabled={isPending || isGenerating}>
+            <CalendarClock className="mr-2 h-4 w-4" />
+            Schedule
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="now" className="mt-4 space-y-4">
+          <div className="text-center text-muted-foreground text-sm">
+            Your post will be published immediately to {currentIntegrationName}
+          </div>
+          <Button onClick={handleSubmit} disabled={!canSubmit || isGenerating} className="w-full">
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Publishing...
+              </>
+            ) : (
+              <>
                 <Rocket className="mr-2 h-4 w-4" />
-                Post Now
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80" side="bottom">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-medium text-lg">Publish Post</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Your post will be published immediately to {currentIntegrationName}
-                    {selectedDestination && (
-                      <span className="mt-1 block">
-                        <strong>Destination:</strong> {selectedDestination.name}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setIsPublishPopoverOpen(false)} disabled={isPending}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handlePublishNow} disabled={isPending}>
-                    {isPending ? "Publishing..." : "Publish Now"}
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Popover open={isSchedulePopoverOpen} onOpenChange={setIsSchedulePopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button variant="outline" disabled={!canSubmit || isGenerating} className="flex-1 sm:flex-none">
+                Publish Now
+              </>
+            )}
+          </Button>
+        </TabsContent>
+
+        <TabsContent value="schedule" className="mt-4 space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="schedule-time">Schedule for:</Label>
+            <Input
+              id="schedule-time"
+              type="datetime-local"
+              value={scheduledDateTime}
+              onChange={(e) => setScheduledDateTime(e.target.value)}
+              min={getMinDateTime()}
+              disabled={isPending}
+            />
+            {scheduledDateTime && (
+              <p className="text-muted-foreground text-sm">Will be published on {new Date(scheduledDateTime).toLocaleString()}</p>
+            )}
+          </div>
+          <Button onClick={handleSubmit} disabled={!canSubmit || isGenerating} className="w-full">
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Scheduling...
+              </>
+            ) : (
+              <>
                 <CalendarClock className="mr-2 h-4 w-4" />
-                Schedule
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-80">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <h3 className="font-medium text-lg">Schedule Post</h3>
-                  <p className="text-muted-foreground text-sm">
-                    Choose when to publish your post to {currentIntegrationName}
-                    {selectedDestination && (
-                      <span className="mt-1 block">
-                        <strong>Destination:</strong> {selectedDestination.name}
-                      </span>
-                    )}
-                  </p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="schedule-time">Schedule for:</Label>
-                  <Input
-                    id="schedule-time"
-                    type="datetime-local"
-                    value={scheduledDateTime}
-                    onChange={(e) => setScheduledDateTime(e.target.value)}
-                    min={getMinDateTime()}
-                    disabled={isPending}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button variant="ghost" onClick={() => setIsSchedulePopoverOpen(false)} disabled={isPending}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleSchedulePost} disabled={isPending || !scheduledDateTime}>
-                    {isPending ? "Scheduling..." : "Schedule Post"}
-                  </Button>
-                </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+                Schedule Post
+              </>
+            )}
+          </Button>
+        </TabsContent>
+      </Tabs>
     </div>
   )
 }
