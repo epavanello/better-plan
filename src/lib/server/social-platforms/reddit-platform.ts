@@ -84,6 +84,10 @@ export class RedditPlatform extends BaseSocialPlatform {
     return true
   }
 
+  supportsMedia(): boolean {
+    return true
+  }
+
   requiresDestination(): boolean {
     return true
   }
@@ -112,11 +116,12 @@ export class RedditPlatform extends BaseSocialPlatform {
         label: "Post type",
         type: "select",
         required: true,
-        helpText: "Choose whether to create a text post or link post",
+        helpText: "Choose whether to create a text, link, or media post.",
         placeholder: "Select post type",
         options: [
           { value: "text", label: "Text post" },
-          { value: "link", label: "Link post" }
+          { value: "link", label: "Link post" },
+          { value: "media", label: "Media post" }
         ]
       }
     ]
@@ -215,7 +220,33 @@ export class RedditPlatform extends BaseSocialPlatform {
         }
       }
 
-      const result = await this.apiClient.submitPost(subredditName, title, postData.content, accessToken, postType === "link", url)
+      // Handle media uploads
+      const mediaUrls: string[] = []
+      if (postData.media && postData.media.length > 0) {
+        if (postType !== "media") {
+          throw new Error("To upload media, please select the 'Media post' type.")
+        }
+
+        // We need the user's Reddit username to upload to their profile
+        const userInfo = await this.apiClient.getUserInfo(accessToken)
+
+        for (const media of postData.media) {
+          const uploadResult = await this.apiClient.uploadMedia(media.content, media.mimeType, accessToken, userInfo.name)
+          mediaUrls.push(uploadResult.imageUrl)
+        }
+      }
+
+      // For media posts, we treat them as text posts with embedded media
+      const isLinkPost = postType === "link"
+      const result = await this.apiClient.submitPost(
+        subredditName,
+        title,
+        postData.content,
+        accessToken,
+        isLinkPost,
+        url,
+        mediaUrls
+      )
 
       const postUrl = `https://www.reddit.com/r/${subredditName}/comments/${result.id}/`
 
