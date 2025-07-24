@@ -21,6 +21,9 @@ export function Header() {
                 <Link to="/app/write" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Write
                 </Link>
+                <Link to="/app/calendar" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
+                  Calendar
+                </Link>
                 <Link to="/app" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Platforms
                 </Link>

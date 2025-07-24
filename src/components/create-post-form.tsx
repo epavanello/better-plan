@@ -11,6 +11,7 @@ import { checkAiAccess, generateAiContent } from "@/functions/ai"
 import { createDestinationFromInput, getRecentDestinations } from "@/functions/posts"
 import type { PlatformInfo, PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
+import { addMinutes, format, isAfter } from "date-fns"
 import { CalendarClock, ChevronDown, ChevronUp, HelpCircle, History, Loader2, Lock, MapPin, Rocket, Sparkles, X, Zap } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
@@ -62,7 +63,7 @@ export function CreatePostForm({
   onValidationError
 }: CreatePostFormProps) {
   const [content, setContent] = useState("")
-  const [scheduledDateTime, setScheduledDateTime] = useState(initialScheduledDate ? initialScheduledDate.toISOString().slice(0, 16) : "")
+  const [scheduledDateTime, setScheduledDateTime] = useState(initialScheduledDate ? format(initialScheduledDate, "yyyy-MM-dd'T'HH:mm") : "")
   const [isScheduleMode, setIsScheduleMode] = useState(!!initialScheduledDate)
   const [aiPrompt, setAiPrompt] = useState("")
   const [showAiInput, setShowAiInput] = useState(false)
@@ -204,7 +205,7 @@ export function CreatePostForm({
         return
       }
       const scheduledDate = new Date(scheduledDateTime)
-      if (scheduledDate <= new Date()) {
+      if (!isAfter(scheduledDate, new Date())) {
         onValidationError("Scheduled time must be in the future.")
         return
       }
@@ -273,8 +274,8 @@ export function CreatePostForm({
 
   const getMinDateTime = () => {
     const now = new Date()
-    now.setMinutes(now.getMinutes() + 5)
-    return now.toISOString().slice(0, 16)
+    const minTime = addMinutes(now, 5)
+    return format(minTime, "yyyy-MM-dd'T'HH:mm")
   }
 
   const renderAdditionalFields = () => {
@@ -867,7 +868,7 @@ export function CreatePostForm({
               disabled={isPending}
             />
             {scheduledDateTime && (
-              <p className="text-muted-foreground text-sm">Will be published on {new Date(scheduledDateTime).toLocaleString()}</p>
+              <p className="text-muted-foreground text-sm">Will be published on {format(new Date(scheduledDateTime), "PPP 'at' p")}</p>
             )}
           </div>
           <Button onClick={handleSubmit} disabled={!canSubmit || isGenerating} className="w-full">

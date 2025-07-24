@@ -1,16 +1,17 @@
 import { CreatePostForm } from "@/components/create-post-form"
 import { platformIcons } from "@/components/platform-icons"
+import { PlatformSelector } from "@/components/platform-selector"
 import { PostsList } from "@/components/posts-list"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { getIntegrations } from "@/functions/integrations"
 import { getPlatformInfo } from "@/functions/platforms"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
 import type { PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { createFileRoute } from "@tanstack/react-router"
+import { createFileRoute, useNavigate } from "@tanstack/react-router"
+import { isValid, parseISO } from "date-fns"
 import { Download, List, PenTool } from "lucide-react"
-import { useMemo, useState } from "react"
+import { useMemo } from "react"
 import { toast } from "sonner"
 import { z } from "zod"
 
@@ -20,21 +21,26 @@ export const Route = createFileRoute("/_protected/app/write")({
     return { integrations }
   },
   validateSearch: z.object({
-    scheduledDate: z.string().optional()
+    scheduledDate: z.string().optional(),
+    integrationId: z.string().optional()
   }),
   component: RouteComponent
 })
 
 function RouteComponent() {
   const { integrations } = Route.useLoaderData()
-  const { scheduledDate } = Route.useSearch()
-  const [selectedIntegrationId, setSelectedIntegrationId] = useState<string | undefined>()
+  const { scheduledDate, integrationId: selectedIntegrationId } = Route.useSearch()
+  const navigate = useNavigate()
 
   // Parse the scheduled date from URL parameter
   const initialScheduledDate = useMemo(() => {
     if (!scheduledDate) return undefined
-    const date = new Date(scheduledDate)
-    return Number.isNaN(date.getTime()) ? undefined : date
+    try {
+      const date = parseISO(scheduledDate)
+      return isValid(date) ? date : undefined
+    } catch {
+      return undefined
+    }
   }, [scheduledDate])
 
   const {
@@ -123,6 +129,18 @@ function RouteComponent() {
     toast.error(message)
   }
 
+  // Handle platform selection
+  const handlePlatformChange = (integrationId: string | undefined) => {
+    navigate({
+      to: "/app/write",
+      search: {
+        scheduledDate,
+        integrationId
+      },
+      replace: true
+    })
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
@@ -136,27 +154,12 @@ function RouteComponent() {
 
             {/* Platform Selector */}
             <div className="w-full sm:w-64">
-              <Select onValueChange={setSelectedIntegrationId} value={selectedIntegrationId}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a platform" />
-                </SelectTrigger>
-                <SelectContent>
-                  {integrations.length > 0 ? (
-                    integrations.map((i) => (
-                      <SelectItem key={i.id} value={i.id}>
-                        <div className="flex items-center gap-2">
-                          {platformIcons[i.platform]}
-                          <span className="truncate">{i.platformAccountName}</span>
-                        </div>
-                      </SelectItem>
-                    ))
-                  ) : (
-                    <SelectItem value="no-platforms" disabled>
-                      No platforms connected
-                    </SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
+              <PlatformSelector
+                integrations={integrations}
+                selectedIntegrationId={selectedIntegrationId}
+                onSelectionChange={handlePlatformChange}
+                placeholder="Select a platform"
+              />
             </div>
           </div>
         </div>
