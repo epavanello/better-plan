@@ -1,5 +1,4 @@
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -7,14 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import type { Platform } from "@/database/schema"
-import { checkAiAccess, generateAiContent } from "@/functions/ai"
 import { createDestinationFromInput, getRecentDestinations } from "@/functions/posts"
 import type { PlatformInfo, PostDestination } from "@/lib/server/social-platforms/base-platform"
-import { useMutation, useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query"
 import { addMinutes, format, isAfter } from "date-fns"
-import { CalendarClock, ChevronDown, ChevronUp, HelpCircle, History, Loader2, Lock, MapPin, Rocket, Sparkles, X, Zap } from "lucide-react"
+import { CalendarClock, HelpCircle, Loader2, MapPin, Rocket, X } from "lucide-react"
 import { useState } from "react"
-import { toast } from "sonner"
+import { AiGenerator } from "./ai/ai-generator"
 
 interface CreatePostFormProps {
   selectedIntegrationId: string | undefined
@@ -65,23 +63,11 @@ export function CreatePostForm({
   const [content, setContent] = useState("")
   const [scheduledDateTime, setScheduledDateTime] = useState(initialScheduledDate ? format(initialScheduledDate, "yyyy-MM-dd'T'HH:mm") : "")
   const [isScheduleMode, setIsScheduleMode] = useState(!!initialScheduledDate)
-  const [aiPrompt, setAiPrompt] = useState("")
-  const [showAiInput, setShowAiInput] = useState(false)
-  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
-  const [showGenerationHistory, setShowGenerationHistory] = useState(false)
   const [selectedDestination, setSelectedDestination] = useState<PostDestination | undefined>(undefined)
   const [customDestination, setCustomDestination] = useState("")
   const [showCustomDestination, setShowCustomDestination] = useState(false)
   const [additionalFields, setAdditionalFields] = useState<Record<string, string>>({})
-
-  // AI tuning parameters
-  const [aiParameters, setAiParameters] = useState<AiTuningParameters>({
-    temperature: 0.7,
-    maxTokens: 150
-  })
-
-  // Generation history
-  const [generationHistory, setGenerationHistory] = useState<GenerationHistory[]>([])
+  const [isAiGenerating, setIsAiGenerating] = useState(false)
 
   // Query for recent destinations
   const { data: recentDestinations, isLoading: isLoadingDestinations } = useQuery({
@@ -90,99 +76,6 @@ export function CreatePostForm({
     enabled: !!currentPlatform && !!platformInfo?.supportsDestinations && !!selectedIntegrationId,
     staleTime: 5 * 60 * 1000 // 5 minutes
   })
-
-  // Always check AI access (for displaying appropriate messages)
-  const { data: aiAccess, isLoading: isCheckingAiAccess } = useQuery({
-    queryKey: ["ai-access"],
-    queryFn: checkAiAccess,
-    retry: false,
-    staleTime: 5 * 60 * 1000 // 5 minutes
-  })
-
-  // AI content generation mutation
-  const { mutate: generateContent, isPending: isGenerating } = useMutation({
-    mutationFn: generateAiContent,
-    onSuccess: (result) => {
-      if (result.content) {
-        // Add to history
-        const historyEntry: GenerationHistory = {
-          id: Date.now().toString(),
-          content: result.content,
-          prompt: aiPrompt,
-          parameters: { ...aiParameters },
-          timestamp: new Date()
-        }
-        setGenerationHistory((prev) => [historyEntry, ...prev.slice(0, 9)]) // Keep last 10
-
-        setContent(result.content)
-        toast.success("Content generated successfully!")
-      }
-    },
-    onError: (error: Error) => {
-      toast.error(error.message)
-    }
-  })
-
-  const handleGenerateAiContent = (iterationInstruction?: string, previousContent?: string) => {
-    if (!isAiAvailable) {
-      onValidationError(aiUnavailableReason || "AI features are not available")
-      return
-    }
-
-    if (!selectedIntegrationId) {
-      onValidationError("Please select a platform first.")
-      return
-    }
-    if (!aiPrompt.trim() && !iterationInstruction) {
-      onValidationError("Please enter a prompt for AI generation.")
-      return
-    }
-
-    generateContent({
-      data: {
-        prompt: iterationInstruction || aiPrompt,
-        integrationId: selectedIntegrationId,
-        temperature: aiParameters.temperature,
-        maxTokens: aiParameters.maxTokens,
-        styleOverride: aiParameters.styleOverride as "casual" | "formal" | "humorous" | "professional" | "conversational" | undefined,
-        toneOverride: aiParameters.toneOverride as
-          | "friendly"
-          | "professional"
-          | "authoritative"
-          | "inspirational"
-          | "educational"
-          | undefined,
-        lengthOverride: aiParameters.lengthOverride as "short" | "medium" | "long" | undefined,
-        useEmojisOverride: aiParameters.useEmojisOverride,
-        useHashtagsOverride: aiParameters.useHashtagsOverride,
-        customInstructionsOverride: aiParameters.customInstructionsOverride,
-        previousContent,
-        iterationInstruction: iterationInstruction || undefined
-      }
-    })
-  }
-
-  const handleQuickAdjustment = (adjustment: string) => {
-    const adjustmentPrompts: Record<string, string> = {
-      shorter: "Make this shorter and more concise",
-      longer: "Expand this with more details and examples",
-      formal: "Make this more formal and professional",
-      casual: "Make this more casual and conversational",
-      humor: "Add some humor and personality to this",
-      engaging: "Make this more engaging and attention-grabbing"
-    }
-
-    if (content && adjustmentPrompts[adjustment]) {
-      handleGenerateAiContent(adjustmentPrompts[adjustment], content)
-    }
-  }
-
-  const handleUseHistoryItem = (historyItem: GenerationHistory) => {
-    setContent(historyItem.content)
-    setAiPrompt(historyItem.prompt)
-    setAiParameters(historyItem.parameters)
-    setShowGenerationHistory(false)
-  }
 
   const handleSubmit = () => {
     if (!selectedIntegrationId) {
@@ -334,367 +227,25 @@ export function CreatePostForm({
     selectedIntegrationId &&
     content &&
     !isPending &&
+    !isAiGenerating &&
     (!platformInfo?.destinationRequired || selectedDestination) &&
     (!isScheduleMode || scheduledDateTime)
 
   const handleTabChange = (value: string) => {
     setIsScheduleMode(value === "schedule")
   }
-  const isAiAvailable = aiAccess?.canAccess
-  const aiUnavailableReason = aiAccess?.reason
-
-  const renderAiButton = () => {
-    if (isAiAvailable) {
-      return (
-        <Button
-          type="button"
-          variant="outline"
-          onClick={() => setShowAiInput(true)}
-          disabled={!selectedIntegrationId || isPending || isGenerating}
-          className="w-full"
-        >
-          <Sparkles className="mr-2 h-4 w-4" />
-          Generate with AI
-        </Button>
-      )
-    }
-    return (
-      <div className="space-y-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button type="button" variant="outline" disabled className="w-full cursor-not-allowed opacity-60">
-                <Lock className="mr-2 h-4 w-4" />
-                Generate with AI
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="max-w-xs">
-                {isCheckingAiAccess ? "Checking AI availability..." : aiUnavailableReason || "AI features unavailable"}
-              </p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-        {!isCheckingAiAccess && aiUnavailableReason && <p className="text-center text-muted-foreground text-sm">{aiUnavailableReason}</p>}
-      </div>
-    )
-  }
-
-  const renderAdvancedSettings = () => (
-    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-      <div className="flex items-center justify-between">
-        <Label className="font-medium text-sm">AI Tuning Parameters</Label>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}>
-          {showAdvancedSettings ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      {showAdvancedSettings && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="temperature" className="text-sm">
-                Creativity ({aiParameters.temperature})
-              </Label>
-              <input
-                id="temperature"
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={aiParameters.temperature ?? 0.7}
-                onChange={(e) => setAiParameters((prev) => ({ ...prev, temperature: Number(e.target.value) }))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
-              />
-              <div className="flex justify-between text-muted-foreground text-xs">
-                <span>Conservative</span>
-                <span>Creative</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="maxTokens" className="text-sm">
-                Max Length
-              </Label>
-              <Input
-                id="maxTokens"
-                type="number"
-                min={50}
-                max={500}
-                value={aiParameters.maxTokens || 150}
-                onChange={(e) => setAiParameters((prev) => ({ ...prev, maxTokens: Number(e.target.value) }))}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label className="text-sm">Style Override</Label>
-              <Select
-                value={aiParameters.styleOverride}
-                onValueChange={(value) => setAiParameters((prev) => ({ ...prev, styleOverride: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Use profile default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="formal">Formal</SelectItem>
-                  <SelectItem value="humorous">Humorous</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="conversational">Conversational</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-sm">Tone Override</Label>
-              <Select
-                value={aiParameters.toneOverride}
-                onValueChange={(value) => setAiParameters((prev) => ({ ...prev, toneOverride: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Use profile default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="authoritative">Authoritative</SelectItem>
-                  <SelectItem value="inspirational">Inspirational</SelectItem>
-                  <SelectItem value="educational">Educational</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-sm">Length Override</Label>
-            <Select
-              value={aiParameters.lengthOverride}
-              onValueChange={(value) => setAiParameters((prev) => ({ ...prev, lengthOverride: value || undefined }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Use profile default" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">Short (1-2 sentences)</SelectItem>
-                <SelectItem value="medium">Medium (3-5 sentences)</SelectItem>
-                <SelectItem value="long">Long (6+ sentences)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="useEmojisOverride"
-                checked={aiParameters.useEmojisOverride ?? false}
-                onCheckedChange={(checked) =>
-                  setAiParameters((prev) => ({ ...prev, useEmojisOverride: checked === true ? true : undefined }))
-                }
-              />
-              <Label htmlFor="useEmojisOverride" className="text-sm">
-                Force emojis
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="useHashtagsOverride"
-                checked={aiParameters.useHashtagsOverride ?? false}
-                onCheckedChange={(checked) =>
-                  setAiParameters((prev) => ({ ...prev, useHashtagsOverride: checked === true ? true : undefined }))
-                }
-              />
-              <Label htmlFor="useHashtagsOverride" className="text-sm">
-                Force hashtags
-              </Label>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="customInstructionsOverride" className="text-sm">
-              Custom Instructions Override
-            </Label>
-            <Textarea
-              id="customInstructionsOverride"
-              placeholder="Override your profile's custom instructions for this generation..."
-              value={aiParameters.customInstructionsOverride || ""}
-              onChange={(e) => setAiParameters((prev) => ({ ...prev, customInstructionsOverride: e.target.value || undefined }))}
-              rows={2}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  )
 
   return (
     <div className="w-full space-y-4">
       {/* AI Generation Section */}
-      <div className="space-y-3">
-        {!showAiInput || !isAiAvailable ? (
-          renderAiButton()
-        ) : (
-          <div className="space-y-3">
-            <div className="space-y-2">
-              <Label htmlFor="ai-prompt">AI Prompt</Label>
-              <div className="flex flex-col gap-2 sm:flex-row">
-                <Input
-                  id="ai-prompt"
-                  placeholder="e.g., Write a post about the benefits of remote work"
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  disabled={isGenerating}
-                  className="flex-1"
-                />
-                <div className="flex gap-2">
-                  <Button type="button" onClick={() => handleGenerateAiContent()} disabled={!aiPrompt.trim() || isGenerating} size="sm">
-                    {isGenerating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      setShowAiInput(false)
-                      setAiPrompt("")
-                    }}
-                    size="sm"
-                    disabled={isGenerating}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-
-            {/* Advanced AI Settings */}
-            {renderAdvancedSettings()}
-
-            {/* Quick Adjustment Buttons */}
-            {content && (
-              <div className="space-y-2">
-                <Label className="font-medium text-sm">Quick Adjustments</Label>
-                <div className="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("shorter")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Shorter
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("longer")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Longer
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("formal")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Formal
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("casual")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Casual
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("humor")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Humor
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleQuickAdjustment("engaging")}
-                    disabled={isGenerating}
-                    className="justify-start"
-                  >
-                    <Zap className="mr-1 h-3 w-3" />
-                    Engaging
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Generation History */}
-            {generationHistory.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="font-medium text-sm">Generation History</Label>
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setShowGenerationHistory(!showGenerationHistory)}>
-                    <History className="mr-1 h-3 w-3" />
-                    {showGenerationHistory ? "Hide" : "Show"} History
-                  </Button>
-                </div>
-
-                {showGenerationHistory && (
-                  <div className="max-h-48 space-y-2 overflow-y-auto rounded-lg border bg-muted/30 p-2">
-                    {generationHistory.map((item) => (
-                      <div key={item.id} className="rounded border bg-background p-2">
-                        <div className="mb-1 flex items-start justify-between">
-                          <span className="text-muted-foreground text-xs">{item.timestamp.toLocaleTimeString()}</span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleUseHistoryItem(item)}
-                            className="h-6 px-2 text-xs"
-                          >
-                            Use
-                          </Button>
-                        </div>
-                        <p className="line-clamp-2 text-sm">{item.content}</p>
-                        <p className="mt-1 text-muted-foreground text-xs">Prompt: {item.prompt}</p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+      <AiGenerator
+        selectedIntegrationId={selectedIntegrationId}
+        isPostCreationPending={isPending}
+        currentContent={content}
+        onContentGenerated={setContent}
+        onValidationError={onValidationError}
+        onIsGeneratingChange={setIsAiGenerating}
+      />
 
       {/* Main Content Textarea */}
       <div className="space-y-2">
@@ -704,7 +255,7 @@ export function CreatePostForm({
           placeholder="What's on your mind?"
           value={content}
           onChange={(e) => setContent(e.target.value)}
-          disabled={isGenerating}
+          disabled={isAiGenerating}
           className="min-h-[120px]"
         />
       </div>
@@ -827,11 +378,11 @@ export function CreatePostForm({
         className="w-full"
       >
         <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="now" disabled={isPending || isGenerating}>
+          <TabsTrigger value="now" disabled={isPending || isAiGenerating}>
             <Rocket className="mr-2 h-4 w-4" />
             Post Now
           </TabsTrigger>
-          <TabsTrigger value="schedule" disabled={isPending || isGenerating}>
+          <TabsTrigger value="schedule" disabled={isPending || isAiGenerating}>
             <CalendarClock className="mr-2 h-4 w-4" />
             Schedule
           </TabsTrigger>
@@ -841,7 +392,7 @@ export function CreatePostForm({
           <div className="text-center text-muted-foreground text-sm">
             Your post will be published immediately to {currentIntegrationName}
           </div>
-          <Button onClick={handleSubmit} disabled={!canSubmit || isGenerating} className="w-full">
+          <Button onClick={handleSubmit} disabled={!canSubmit || isAiGenerating} className="w-full">
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -871,7 +422,7 @@ export function CreatePostForm({
               <p className="text-muted-foreground text-sm">Will be published on {format(new Date(scheduledDateTime), "PPP 'at' p")}</p>
             )}
           </div>
-          <Button onClick={handleSubmit} disabled={!canSubmit || isGenerating} className="w-full">
+          <Button onClick={handleSubmit} disabled={!canSubmit || isAiGenerating} className="w-full">
             {isPending ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
