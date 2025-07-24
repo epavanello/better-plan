@@ -13,6 +13,20 @@ export class LinkedInPlatform extends BaseSocialPlatform {
     return false // LinkedIn non richiede setup custom, usa OAuth 2.0 standard
   }
 
+  async ensureValidAccessToken(
+    integration: {
+      id: string
+      accessToken: string
+      refreshToken: string | null
+      expiresAt: Date | null
+    },
+    credentials: { clientId: string; clientSecret: string }
+  ): Promise<string> {
+    // TODO: Implement LinkedIn token refresh logic when OAuth 2.0 integration is complete
+    // For now, return the current token as placeholder
+    return integration.accessToken
+  }
+
   async startAuthorization(userId: string): Promise<{ url: string }> {
     // TODO: Implementare l'autorizzazione LinkedIn
     throw new Error("LinkedIn authorization not yet implemented")

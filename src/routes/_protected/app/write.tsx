@@ -1,4 +1,4 @@
-import { CreatePostForm, type CreatePostData } from "@/components/create-post-form"
+import { type CreatePostData, CreatePostForm } from "@/components/create-post-form"
 import { platformIcons } from "@/components/platform-icons"
 import { PlatformSelector } from "@/components/platform-selector"
 import { PostsList } from "@/components/posts-list"

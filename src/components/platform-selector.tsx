@@ -1,11 +1,12 @@
 import { platformIcons } from "@/components/platform-icons"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type { integrations } from "@/database/schema"
+import type { getIntegrations } from "@/functions/integrations"
 
 type Integration = typeof integrations.$inferSelect
 
 interface PlatformSelectorProps {
-  integrations: Integration[]
+  integrations: Awaited<ReturnType<typeof getIntegrations>>
   selectedIntegrationId?: string
   onSelectionChange: (integrationId: string | undefined) => void
   placeholder?: string

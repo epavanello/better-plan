@@ -1,14 +1,15 @@
 import { db } from "@/database/db"
 import { type InsertPost, postMedia, posts } from "@/database/schema"
-import { PLATFORM_VALUES, type Platform, integrations } from "@/database/schema/integrations"
+import { PLATFORM_VALUES, type Platform } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
-import { getEffectiveCredentials } from "@/lib/server/integrations"
+import { getEffectiveCredentials, getIntegrationWithValidToken } from "@/lib/server/integrations"
 import { postToSocialMedia } from "@/lib/server/post-service"
 import { PostDestinationService } from "@/lib/server/posts/destination-service"
 import { DestinationSchema } from "@/lib/server/social-platforms/base-platform"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
 import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, sql } from "drizzle-orm"
+import { ulid } from "ulid"
 import { z } from "zod"
 
 const createPostSchema = z.object({
@@ -33,13 +34,8 @@ export const createPost = createServerFn({ method: "POST" })
     const session = await getSessionOrThrow()
     const destinationService = new PostDestinationService()
 
-    const integration = await db.query.integrations.findFirst({
-      where: (integrations, { eq, and }) => and(eq(integrations.id, data.integrationId), eq(integrations.userId, session.user.id))
-    })
-
-    if (!integration) {
-      throw new Error("Integration not found")
-    }
+    // Use utility to get integration with valid token
+    const integration = await getIntegrationWithValidToken(data.integrationId, session.user.id)
 
     const platform = PlatformFactory.getPlatform(integration.platform)
     if (!platform) {
@@ -53,6 +49,7 @@ export const createPost = createServerFn({ method: "POST" })
     }
 
     const postData: InsertPost = {
+      id: ulid(),
       content: data.content,
       integrationId: data.integrationId,
       userId: session.user.id,
@@ -94,13 +91,7 @@ export const createPost = createServerFn({ method: "POST" })
           destination: data.destination,
           additionalFields: data.additionalFields,
           media: data.media,
-          integration: {
-            id: integration.id,
-            platform: integration.platform,
-            platformAccountId: integration.platformAccountId,
-            platformAccountName: integration.platformAccountName,
-            accessToken: integration.accessToken
-          }
+          integration
         })
       } catch (error) {
         console.error("Failed to post immediately", error)
@@ -142,14 +133,12 @@ export const createDestinationFromInput = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
-    // Get the integration with access token
-    const integration = await db.query.integrations.findFirst({
-      where: (integrations, { eq, and }) =>
-        and(eq(integrations.id, data.integrationId), eq(integrations.userId, session.user.id), eq(integrations.platform, data.platform))
-    })
+    // Use utility to get integration with valid token
+    const integration = await getIntegrationWithValidToken(data.integrationId, session.user.id)
 
-    if (!integration) {
-      throw new Error("Integration not found")
+    // Verify platform matches
+    if (integration.platform !== data.platform) {
+      throw new Error("Platform mismatch")
     }
 
     // Get the platform implementation
@@ -166,15 +155,28 @@ export const getPosts = createServerFn({ method: "GET" })
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
+    // Use utility to get integration with valid token
+    const integration = await getIntegrationWithValidToken(data.integrationId, session.user.id)
+
     const userPosts = await db.query.posts.findMany({
       where: and(eq(posts.userId, session.user.id), eq(posts.integrationId, data.integrationId)),
       with: {
-        integration: true,
         media: true
       },
       orderBy: [desc(posts.createdAt)]
     })
-    return userPosts
+
+    return userPosts.map((post) => ({
+      ...post,
+      integration: {
+        id: integration.id,
+        platform: integration.platform,
+        platformAccountName: integration.platformAccountName,
+        accessToken: integration.accessToken,
+        refreshToken: integration.refreshToken,
+        expiresAt: integration.expiresAt
+      }
+    }))
   })
 
 export const deletePost = createServerFn({ method: "POST" })
@@ -201,14 +203,8 @@ export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
-    const [integration] = await db
-      .select()
-      .from(integrations)
-      .where(and(eq(integrations.id, data.integrationId), eq(integrations.userId, session.user.id)))
-
-    if (!integration) {
-      throw new Error("Integration not found")
-    }
+    // Use utility to get integration with valid token
+    const integration = await getIntegrationWithValidToken(data.integrationId, session.user.id)
 
     const platform = PlatformFactory.getPlatform(integration.platform)
 
@@ -220,6 +216,7 @@ export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
       throw new Error("Integration is not properly configured.")
     }
 
+    // Get credentials for platform operations
     const credentials = await getEffectiveCredentials(integration.platform, session.user.id)
 
     if (!credentials) {
@@ -249,7 +246,6 @@ export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
     const newPosts = recentPosts.filter((post) => {
       const isDuplicateContent = existingContentSet.has(post.content)
       const isDuplicateUrl = post.postUrl && existingUrlSet.has(post.postUrl)
-
       return !isDuplicateContent && !isDuplicateUrl
     })
 

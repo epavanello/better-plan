@@ -30,7 +30,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/reddit/callb
       }
 
       // Verify state parameter (CSRF protection)
-      const storedState = await getCookie("reddit_oauth_state")
+      const storedState = getCookie("reddit_oauth_state")
       if (!storedState || storedState !== state) {
         console.error("State mismatch or missing state cookie")
         return Response.redirect(`${envConfig.APP_URL}/app?error=reddit_state_mismatch`)
@@ -53,6 +53,9 @@ export const ServerRoute = createServerFileRoute("/api/integrations/reddit/callb
       // Get user info
       const userInfo = await redditPlatform.getUserInfo(tokenResponse.accessToken)
 
+      // Calculate expiration date from expires_in (Reddit returns seconds)
+      const expiresAt = new Date(Date.now() + tokenResponse.expiresIn * 1000)
+
       // Check if integration already exists
       const existingIntegration = await db
         .select()
@@ -73,7 +76,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/reddit/callb
           .set({
             accessToken: tokenResponse.accessToken,
             refreshToken: tokenResponse.refreshToken,
-            expiresAt: null, // Reddit tokens don't expire
+            expiresAt: expiresAt,
             scopes: "submit,read,identity,mysubreddits",
             platformAccountName: userInfo.name,
             updatedAt: new Date()
@@ -88,7 +91,7 @@ export const ServerRoute = createServerFileRoute("/api/integrations/reddit/callb
           platformAccountName: userInfo.name,
           accessToken: tokenResponse.accessToken,
           refreshToken: tokenResponse.refreshToken,
-          expiresAt: null, // Reddit tokens don't expire
+          expiresAt: expiresAt,
           scopes: "submit,read,identity,mysubreddits",
           userId: session.user.id
         })

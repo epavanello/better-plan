@@ -20,6 +20,10 @@ class NotImplementedPlatform extends BaseSocialPlatform {
     return false
   }
 
+  async ensureValidAccessToken(): Promise<string> {
+    throw new Error(`${this.name} platform not yet implemented`)
+  }
+
   getDisplayName(): string {
     // Capitalizza la prima lettera di ogni parola
     return this.name
@@ -30,7 +34,7 @@ class NotImplementedPlatform extends BaseSocialPlatform {
 }
 
 // Registry delle piattaforme supportate
-const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new (name: Platform): BaseSocialPlatform }> = {
+const PLATFORM_REGISTRY: Record<Platform, PlatformConstructor | { new(name: Platform): BaseSocialPlatform }> = {
   x: XPlatform,
   reddit: RedditPlatform,
   instagram: class extends NotImplementedPlatform {

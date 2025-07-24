@@ -15,7 +15,14 @@ export const getIntegrations = createServerFn({ method: "GET" }).handler(async (
   return userIntegrations.map((i) => {
     const platform = PlatformFactory.getPlatform(i.platform)
     return {
-      ...i,
+      id: i.id,
+      platform: i.platform,
+      platformAccountId: i.platformAccountId,
+      platformAccountName: i.platformAccountName,
+      expiresAt: i.expiresAt,
+      userId: i.userId,
+      createdAt: i.createdAt,
+      updatedAt: i.updatedAt,
       supportsFetchingRecentPosts: platform.supportsFetchingRecentPosts()
     }
   })
@@ -71,7 +78,17 @@ export const getUserAppCredentials = createServerFn({ method: "GET" })
         .where(and(eq(userAppCredentials.userId, session.user.id), eq(userAppCredentials.platform, platform)))
         .limit(1)
 
-      return credentials[0] || null
+      if (credentials[0]) {
+        // Return only non-sensitive data
+        return {
+          id: credentials[0].id,
+          platform: credentials[0].platform,
+          clientId: credentials[0].clientId,
+          userId: credentials[0].userId,
+          createdAt: credentials[0].createdAt,
+          updatedAt: credentials[0].updatedAt
+        }
+      }
     }
 
     return null

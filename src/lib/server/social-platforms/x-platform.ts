@@ -145,6 +145,19 @@ export class XPlatform extends BaseSocialPlatform {
     }
   }
 
+  async ensureValidAccessToken(
+    integration: {
+      id: string
+      accessToken: string
+      refreshToken: string | null
+      expiresAt: Date | null
+    },
+    credentials: { clientId: string; clientSecret: string }
+  ): Promise<string> {
+    // X tokens (OAuth 1.0a) don't expire, so we just return the current token
+    return integration.accessToken
+  }
+
   async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
       const { token, secret } = parseAccessToken(accessToken)

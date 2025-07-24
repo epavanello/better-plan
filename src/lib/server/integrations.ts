@@ -2,6 +2,7 @@ import { db } from "@/database/db"
 import { type Platform, userAppCredentials } from "@/database/schema"
 import { and, eq } from "drizzle-orm"
 import { envConfig } from "../env"
+import { PlatformFactory } from "./social-platforms/platform-factory"
 
 export const getSystemCredentials = async (platform: Platform) => {
   switch (platform) {
@@ -176,5 +177,47 @@ export const getUserCredentialsInfo = async (platform: Platform, userId: string)
     requiresSetup: false,
     canConnect: false,
     source: null
+  }
+}
+
+export const getIntegrationByIdAndUser = async (integrationId: string, userId: string) => {
+  const integration = await db.query.integrations.findFirst({
+    where: (integrations, { eq, and }) => and(eq(integrations.id, integrationId), eq(integrations.userId, userId))
+  })
+
+  if (!integration) {
+    throw new Error("Integration not found")
+  }
+
+  return integration
+}
+
+export const getIntegrationWithValidToken = async (integrationId: string, userId: string) => {
+  // Get the integration from database
+  const integration = await getIntegrationByIdAndUser(integrationId, userId)
+
+  // Get platform implementation and credentials
+  const platform = PlatformFactory.getPlatform(integration.platform)
+  const credentials = await getEffectiveCredentials(integration.platform, userId)
+
+  if (!credentials) {
+    throw new Error("Integration credentials not found")
+  }
+
+  // Ensure the access token is valid and refresh if necessary
+  const validAccessToken = await platform.ensureValidAccessToken(
+    {
+      id: integration.id,
+      accessToken: integration.accessToken,
+      refreshToken: integration.refreshToken,
+      expiresAt: integration.expiresAt
+    },
+    credentials
+  )
+
+  // Return the integration object with the potentially updated access token
+  return {
+    ...integration,
+    accessToken: validAccessToken
   }
 }

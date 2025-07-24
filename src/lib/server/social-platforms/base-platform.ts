@@ -52,6 +52,8 @@ export interface PostData {
     platformAccountId: string
     platformAccountName: string
     accessToken: string | null
+    refreshToken: string | null
+    expiresAt: Date | null
   }
 }
 
@@ -171,7 +173,7 @@ export abstract class BaseSocialPlatform {
   }
 
   getPlatformName(): Platform {
-    return this.name
+    return this.name as Platform
   }
 
   getDisplayName(): string {
@@ -297,13 +299,18 @@ export abstract class BaseSocialPlatform {
         throw new Error("Access token not found")
       }
 
-      const isValid = await this.validateCredentials(postData.integration.accessToken, effectiveCredentials)
+      // Ensure valid access token before proceeding
+      const validAccessToken = await this.ensureValidAccessToken(
+        {
+          id: postData.integration.id,
+          accessToken: postData.integration.accessToken,
+          refreshToken: postData.integration.refreshToken,
+          expiresAt: postData.integration.expiresAt
+        },
+        effectiveCredentials
+      )
 
-      if (!isValid) {
-        throw new Error(`Invalid ${this.name} credentials`)
-      }
-
-      return await this.postContent(postData, postData.integration.accessToken, effectiveCredentials)
+      return await this.postContent(postData, validAccessToken, effectiveCredentials)
     } catch (error) {
       return {
         success: false,
@@ -311,4 +318,23 @@ export abstract class BaseSocialPlatform {
       }
     }
   }
+
+  /**
+   * Ensures the access token is valid and refreshes it if necessary.
+   * This method should check token expiration and refresh if needed,
+   * updating the database with new tokens.
+   *
+   * @param integration - The integration record from database
+   * @param credentials - Platform credentials for token refresh
+   * @returns Promise<string> - Valid access token
+   */
+  abstract ensureValidAccessToken(
+    integration: {
+      id: string
+      accessToken: string
+      refreshToken: string | null
+      expiresAt: Date | null
+    },
+    credentials: { clientId: string; clientSecret: string }
+  ): Promise<string>
 }

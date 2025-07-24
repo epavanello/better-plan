@@ -1,13 +1,13 @@
 import { db } from "@/database/db"
 import { postMedia, posts } from "@/database/schema"
-import { integrations } from "@/database/schema/integrations"
 import { and, eq, lte } from "drizzle-orm"
+import { getIntegrationWithValidToken } from "./integrations"
 import { postToSocialMedia } from "./post-service"
 
 export async function processScheduledPosts() {
   console.log("Processing scheduled posts...")
 
-  // Trova tutti i post schedulati che sono pronti per essere postati
+  // Find all scheduled posts that are ready to be posted
   const scheduledPosts = await db
     .select({
       id: posts.id,
@@ -16,28 +16,36 @@ export async function processScheduledPosts() {
       userId: posts.userId,
       scheduledAt: posts.scheduledAt,
       failCount: posts.failCount,
-      integration: {
-        id: integrations.id,
-        platform: integrations.platform,
-        platformAccountId: integrations.platformAccountId,
-        platformAccountName: integrations.platformAccountName,
-        accessToken: integrations.accessToken
-      }
+      destinationType: posts.destinationType,
+      destinationId: posts.destinationId,
+      destinationName: posts.destinationName,
+      destinationMetadata: posts.destinationMetadata
     })
     .from(posts)
-    .innerJoin(integrations, eq(posts.integrationId, integrations.id))
     .where(and(eq(posts.status, "scheduled"), lte(posts.scheduledAt, new Date()), lte(posts.failCount, 3)))
 
   console.log(`Found ${scheduledPosts.length} posts to process`)
 
   for (const post of scheduledPosts) {
     try {
+      // Get integration with valid token
+      const integration = await getIntegrationWithValidToken(post.integrationId, post.userId)
+
       const media = await db.query.postMedia.findMany({
         where: eq(postMedia.postId, post.id)
       })
 
       await postToSocialMedia({
         ...post,
+        integration: {
+          id: integration.id,
+          platform: integration.platform,
+          platformAccountId: integration.platformAccountId,
+          platformAccountName: integration.platformAccountName,
+          accessToken: integration.accessToken,
+          refreshToken: integration.refreshToken,
+          expiresAt: integration.expiresAt
+        },
         media: media.length > 0 ? media.map((m) => ({ content: m.content, mimeType: m.mimeType })) : undefined
       })
     } catch (error) {

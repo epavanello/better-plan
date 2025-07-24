@@ -25,11 +25,44 @@ export class RedditApiClient {
     return response
   }
 
+  async refreshAccessToken(
+    refreshToken: string,
+    credentials: { clientId: string; clientSecret: string }
+  ): Promise<{ accessToken: string; refreshToken?: string; expiresIn: number }> {
+    const auth = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString("base64")
+
+    const formData = new URLSearchParams()
+    formData.append("grant_type", "refresh_token")
+    formData.append("refresh_token", refreshToken)
+
+    const response = await fetch(this.tokenUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${auth}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "BetterPlan/1.0"
+      },
+      body: formData
+    })
+
+    if (!response.ok) {
+      const error = await response.text()
+      throw new Error(`Token refresh failed: ${response.status} - ${error}`)
+    }
+
+    const tokenData: RedditTokenResponse = await response.json()
+    return {
+      accessToken: tokenData.access_token,
+      refreshToken: tokenData.refresh_token,
+      expiresIn: tokenData.expires_in
+    }
+  }
+
   async exchangeCodeForTokens(
     code: string,
     redirectUri: string,
     credentials: { clientId: string; clientSecret: string }
-  ): Promise<{ accessToken: string; refreshToken?: string }> {
+  ): Promise<{ accessToken: string; refreshToken?: string; expiresIn: number }> {
     const auth = Buffer.from(`${credentials.clientId}:${credentials.clientSecret}`).toString("base64")
 
     const formData = new URLSearchParams()
@@ -55,7 +88,8 @@ export class RedditApiClient {
     const tokenData: RedditTokenResponse = await response.json()
     return {
       accessToken: tokenData.access_token,
-      refreshToken: tokenData.refresh_token
+      refreshToken: tokenData.refresh_token,
+      expiresIn: tokenData.expires_in
     }
   }
 
@@ -102,12 +136,7 @@ export class RedditApiClient {
     }
   }
 
-  async uploadMedia(
-    mediaContent: string,
-    mimeType: string,
-    accessToken: string,
-    userName: string
-  ): Promise<{ imageUrl: string }> {
+  async uploadMedia(mediaContent: string, mimeType: string, accessToken: string, userName: string): Promise<{ imageUrl: string }> {
     const formData = new FormData()
     const buffer = Buffer.from(mediaContent, "base64")
     const blob = new Blob([buffer], { type: mimeType })

@@ -1,7 +1,10 @@
+import { db } from "@/database/db"
 import type { InsertPost } from "@/database/schema"
+import { integrations } from "@/database/schema"
 import { getSessionOrThrow } from "@/lib/auth"
 import { envConfig } from "@/lib/env"
 import { setCookie } from "@tanstack/react-start/server"
+import { eq } from "drizzle-orm"
 import { ulid } from "ulid"
 import { getEffectiveCredentials } from "../integrations"
 import {
@@ -179,6 +182,48 @@ export class RedditPlatform extends BaseSocialPlatform {
     return { url: authUrl.toString() }
   }
 
+  async ensureValidAccessToken(
+    integration: {
+      id: string
+      accessToken: string
+      refreshToken: string | null
+      expiresAt: Date | null
+    },
+    credentials: { clientId: string; clientSecret: string }
+  ): Promise<string> {
+    // If no expiration date or token hasn't expired yet, use current token
+    if (!integration.expiresAt || integration.expiresAt > new Date()) {
+      return integration.accessToken
+    }
+
+    // Token has expired, try to refresh if we have a refresh token
+    if (!integration.refreshToken) {
+      throw new Error("Reddit access token has expired and no refresh token is available. Please reconnect your Reddit account.")
+    }
+
+    try {
+      const refreshResult = await this.apiClient.refreshAccessToken(integration.refreshToken, credentials)
+
+      // Update the integration with new tokens
+      const newExpiresAt = new Date(Date.now() + refreshResult.expiresIn * 1000)
+
+      await db
+        .update(integrations)
+        .set({
+          accessToken: refreshResult.accessToken,
+          refreshToken: refreshResult.refreshToken || integration.refreshToken,
+          expiresAt: newExpiresAt,
+          updatedAt: new Date()
+        })
+        .where(eq(integrations.id, integration.id))
+
+      return refreshResult.accessToken
+    } catch (error) {
+      console.error("Failed to refresh Reddit token:", error)
+      throw new Error("Reddit access token has expired and refresh failed. Please reconnect your Reddit account.")
+    }
+  }
+
   async validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean> {
     try {
       await this.apiClient.getUserInfo(accessToken)
@@ -238,15 +283,7 @@ export class RedditPlatform extends BaseSocialPlatform {
 
       // For media posts, we treat them as text posts with embedded media
       const isLinkPost = postType === "link"
-      const result = await this.apiClient.submitPost(
-        subredditName,
-        title,
-        postData.content,
-        accessToken,
-        isLinkPost,
-        url,
-        mediaUrls
-      )
+      const result = await this.apiClient.submitPost(subredditName, title, postData.content, accessToken, isLinkPost, url, mediaUrls)
 
       const postUrl = `https://www.reddit.com/r/${subredditName}/comments/${result.id}/`
 
@@ -391,11 +428,10 @@ export class RedditPlatform extends BaseSocialPlatform {
     code: string,
     redirectUri: string,
     credentials: { clientId: string; clientSecret: string }
-  ): Promise<{ accessToken: string; refreshToken?: string }> {
+  ): Promise<{ accessToken: string; refreshToken?: string; expiresIn: number }> {
     return this.apiClient.exchangeCodeForTokens(code, redirectUri, credentials)
   }
 
-  // Get user info
   async getUserInfo(accessToken: string): Promise<{ id: string; name: string }> {
     return this.apiClient.getUserInfo(accessToken)
   }
