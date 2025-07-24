@@ -1,5 +1,5 @@
 import { db } from "@/database/db"
-import { type InsertPost, posts } from "@/database/schema"
+import { type InsertPost, postMedia, posts } from "@/database/schema"
 import { PLATFORM_VALUES, type Platform, integrations } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { getEffectiveCredentials } from "@/lib/server/integrations"
@@ -16,7 +16,15 @@ const createPostSchema = z.object({
   content: z.string(),
   scheduledAt: z.date().optional(),
   destination: DestinationSchema.optional(),
-  additionalFields: z.record(z.string()).optional()
+  additionalFields: z.record(z.string()).optional(),
+  media: z
+    .array(
+      z.object({
+        content: z.string(),
+        mimeType: z.string()
+      })
+    )
+    .optional()
 })
 
 export const createPost = createServerFn({ method: "POST" })
@@ -61,6 +69,16 @@ export const createPost = createServerFn({ method: "POST" })
     const result = await db.insert(posts).values(postData).returning()
     const post = result[0]
 
+    // Save media if provided
+    if (data.media && data.media.length > 0) {
+      const mediaToInsert = data.media.map((m) => ({
+        postId: post.id,
+        content: m.content,
+        mimeType: m.mimeType
+      }))
+      await db.insert(postMedia).values(mediaToInsert)
+    }
+
     // Save destination to recent destinations if provided
     if (data.destination) {
       await destinationService.saveRecentDestination(session.user.id, integration.platform, data.destination)
@@ -75,6 +93,7 @@ export const createPost = createServerFn({ method: "POST" })
           userId: post.userId,
           destination: data.destination,
           additionalFields: data.additionalFields,
+          media: data.media,
           integration: {
             id: integration.id,
             platform: integration.platform,
@@ -150,7 +169,8 @@ export const getPosts = createServerFn({ method: "GET" })
     const userPosts = await db.query.posts.findMany({
       where: and(eq(posts.userId, session.user.id), eq(posts.integrationId, data.integrationId)),
       with: {
-        integration: true
+        integration: true,
+        media: true
       },
       orderBy: [desc(posts.createdAt)]
     })

@@ -1,4 +1,4 @@
-import { CreatePostForm } from "@/components/create-post-form"
+import { CreatePostForm, type CreatePostData } from "@/components/create-post-form"
 import { platformIcons } from "@/components/platform-icons"
 import { PlatformSelector } from "@/components/platform-selector"
 import { PostsList } from "@/components/posts-list"
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { getIntegrations } from "@/functions/integrations"
 import { getPlatformInfo } from "@/functions/platforms"
 import { createPost, deletePost, fetchRecentSocialPosts, getPosts } from "@/functions/posts"
-import type { PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { isValid, parseISO } from "date-fns"
@@ -107,21 +106,9 @@ function RouteComponent() {
     fetchRecent({ data: { integrationId: selectedIntegrationId } })
   }
 
-  const handleCreatePost = (data: {
-    integrationId: string
-    content: string
-    scheduledAt?: Date
-    destination?: PostDestination
-    additionalFields?: Record<string, string>
-  }) => {
+  const handleCreatePost = (data: CreatePostData) => {
     create({
-      data: {
-        integrationId: data.integrationId,
-        content: data.content,
-        scheduledAt: data.scheduledAt,
-        destination: data.destination,
-        additionalFields: data.additionalFields
-      }
+      data
     })
   }
 

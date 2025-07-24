@@ -1,5 +1,5 @@
 import { db } from "@/database/db"
-import { posts } from "@/database/schema"
+import { postMedia, posts } from "@/database/schema"
 import { integrations } from "@/database/schema/integrations"
 import { and, eq, lte } from "drizzle-orm"
 import { postToSocialMedia } from "./post-service"
@@ -32,7 +32,14 @@ export async function processScheduledPosts() {
 
   for (const post of scheduledPosts) {
     try {
-      await postToSocialMedia(post)
+      const media = await db.query.postMedia.findMany({
+        where: eq(postMedia.postId, post.id)
+      })
+
+      await postToSocialMedia({
+        ...post,
+        media: media.length > 0 ? media.map((m) => ({ content: m.content, mimeType: m.mimeType })) : undefined
+      })
     } catch (error) {
       console.error(`Failed to process post ${post.id}:`, error)
       await db

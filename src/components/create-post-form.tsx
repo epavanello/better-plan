@@ -10,9 +10,21 @@ import { createDestinationFromInput, getRecentDestinations } from "@/functions/p
 import type { PlatformInfo, PostDestination } from "@/lib/server/social-platforms/base-platform"
 import { useQuery } from "@tanstack/react-query"
 import { addMinutes, format, isAfter } from "date-fns"
-import { CalendarClock, HelpCircle, Loader2, MapPin, Rocket, X } from "lucide-react"
-import { useState } from "react"
+import { CalendarClock, HelpCircle, Image as ImageIcon, Loader2, MapPin, Rocket, X } from "lucide-react"
+import { useRef, useState } from "react"
 import { AiGenerator } from "./ai/ai-generator"
+
+export interface CreatePostData {
+  integrationId: string
+  content: string
+  scheduledAt?: Date
+  destination?: PostDestination
+  additionalFields?: Record<string, string>
+  media?: {
+    content: string
+    mimeType: string
+  }[]
+}
 
 interface CreatePostFormProps {
   selectedIntegrationId: string | undefined
@@ -21,13 +33,7 @@ interface CreatePostFormProps {
   platformInfo?: PlatformInfo
   isPending: boolean
   initialScheduledDate?: Date
-  onCreatePost: (data: {
-    integrationId: string
-    content: string
-    scheduledAt?: Date
-    destination?: PostDestination
-    additionalFields?: Record<string, string>
-  }) => void
+  onCreatePost: (data: CreatePostData) => void
   onValidationError: (message: string) => void
 }
 
@@ -68,6 +74,8 @@ export function CreatePostForm({
   const [showCustomDestination, setShowCustomDestination] = useState(false)
   const [additionalFields, setAdditionalFields] = useState<Record<string, string>>({})
   const [isAiGenerating, setIsAiGenerating] = useState(false)
+  const [media, setMedia] = useState<{ content: string; mimeType: string }[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Query for recent destinations
   const { data: recentDestinations, isLoading: isLoadingDestinations } = useQuery({
@@ -123,13 +131,18 @@ export function CreatePostForm({
       content,
       scheduledAt: isScheduleMode ? new Date(scheduledDateTime) : undefined,
       destination: selectedDestination,
-      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined
+      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined,
+      media: media.length > 0 ? media : undefined
     })
 
     // Reset form after successful submission
     setContent("")
     setScheduledDateTime("")
     setIsScheduleMode(false)
+    setMedia([])
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ""
+    }
   }
 
   const handleCustomDestination = () => {
@@ -172,6 +185,35 @@ export function CreatePostForm({
 
   const handleAdditionalFieldChange = (key: string, value: string) => {
     setAdditionalFields((prev) => ({ ...prev, [key]: value }))
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files) {
+      const files = Array.from(event.target.files)
+      const newMedia: { content: string; mimeType: string }[] = []
+      let filesProcessed = 0
+
+      for (const file of files) {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const base64 = e.target?.result?.toString().split(",")[1]
+          if (base64) {
+            newMedia.push({ content: base64, mimeType: file.type })
+          }
+          filesProcessed++
+
+          // When all files are processed, update the state
+          if (filesProcessed === files.length) {
+            setMedia([...media, ...newMedia])
+            // Reset the file input to allow selecting the same files again if needed
+            if (fileInputRef.current) {
+              fileInputRef.current.value = ""
+            }
+          }
+        }
+        reader.readAsDataURL(file)
+      }
+    }
   }
 
   const getMinDateTime = () => {
@@ -280,6 +322,46 @@ export function CreatePostForm({
           </div>
         )}
       </div>
+
+      {/* Media Upload Section */}
+      {platformInfo?.supportsMedia && (
+        <div className="space-y-2">
+          <Label htmlFor="media-upload">
+            <ImageIcon className="mr-2 inline h-4 w-4" />
+            Attach Images
+          </Label>
+          <Input id="media-upload" type="file" accept="image/*" multiple onChange={handleFileChange} ref={fileInputRef} />
+          {media.length > 0 && (
+            <div className="mt-2">
+              <p className="text-muted-foreground text-sm">
+                {media.length} image{media.length > 1 ? "s" : ""} selected:
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {media.map((item, index) => (
+                  <div key={index} className="group relative">
+                    <div className="relative h-20 w-20 overflow-hidden rounded-lg border">
+                      <img
+                        src={`data:${item.mimeType};base64,${item.content}`}
+                        alt={`Preview ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => setMedia(media.filter((_, i) => i !== index))}
+                        className="absolute top-1 right-1 h-6 w-6 p-0 opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Destination Selection - Only show if platform supports destinations */}
       {platformInfo?.supportsDestinations && (

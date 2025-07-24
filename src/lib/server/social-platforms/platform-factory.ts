@@ -122,7 +122,8 @@ export class PlatformFactory {
         isImplemented: platformInstance.isImplemented(),
         requiredFields: platformInstance.getRequiredFields(),
         setupInformation: platformInstance.getSetupInformation(),
-        maxCharacterLimit: platformInstance.getMaxCharacterLimit()
+        maxCharacterLimit: platformInstance.getMaxCharacterLimit(),
+        supportsMedia: platformInstance.supportsMedia()
       }
     } catch {
       return {
@@ -136,7 +137,8 @@ export class PlatformFactory {
         isImplemented: false,
         requiredFields: [],
         setupInformation: undefined,
-        maxCharacterLimit: undefined
+        maxCharacterLimit: undefined,
+        supportsMedia: false
       }
     }
   }

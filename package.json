@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite dev",
     "build": "vite build && tsc --noEmit",
-    "start": "dotenv -e .env -- vite start",
+    "start": "dotenv -e .env -- node .output/server/index.mjs",
     "lint": "biome check",
     "lint:fix": "biome check --write",
     "check-types": "tsc --noEmit",

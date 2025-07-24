@@ -35,13 +35,28 @@ export const Route = createRootRoute({
       user: serverSession?.user
     }
   },
-  component: RootComponent
+  component: RootComponent,
+  notFoundComponent: NotFoundComponent
 })
 
 function RootComponent() {
   return (
     <RootDocument>
       <Outlet />
+    </RootDocument>
+  )
+}
+
+function NotFoundComponent() {
+  return (
+    <RootDocument>
+      <div className="flex flex-1 items-center justify-center">
+        <div className="text-center">
+          <h1 className="font-bold text-4xl text-muted-foreground">404</h1>
+          <p className="mt-2 text-lg text-muted-foreground">Page not found</p>
+          <p className="mt-1 text-muted-foreground text-sm">The page you're looking for doesn't exist.</p>
+        </div>
+      </div>
     </RootDocument>
   )
 }

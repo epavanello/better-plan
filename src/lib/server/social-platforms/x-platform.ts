@@ -73,6 +73,10 @@ export class XPlatform extends BaseSocialPlatform {
     return 280
   }
 
+  supportsMedia(): boolean {
+    return true
+  }
+
   supportsFetchingRecentPosts(): boolean {
     return true
   }
@@ -178,6 +182,22 @@ export class XPlatform extends BaseSocialPlatform {
 
       // Prepare tweet options
       const tweetOptions: SendTweetV2Params = {}
+
+      // Handle media uploads
+      if (postData.media && postData.media.length > 0) {
+        const mediaIds = (await Promise.all(
+          postData.media.map((media) => {
+            const buffer = Buffer.from(media.content, "base64")
+            return twitterClient.v1.uploadMedia(buffer, {
+              mimeType: media.mimeType
+            })
+          })
+        )) as [string]
+
+        if (mediaIds.length > 0) {
+          tweetOptions.media = { media_ids: mediaIds }
+        }
+      }
 
       // Add community_id if posting to a community
       if (postData.destination && postData.destination.type === "community") {

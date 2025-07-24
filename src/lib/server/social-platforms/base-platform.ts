@@ -41,6 +41,11 @@ export interface PostData {
   userId: string
   destination?: PostDestination
   additionalFields?: Record<string, string> // For platform-specific fields like Reddit title
+  media?: {
+    // base64 encoded string
+    content: string
+    mimeType: string
+  }[]
   integration: {
     id: string
     platform: Platform
@@ -83,6 +88,7 @@ export interface PlatformInfo {
   requiredFields?: RequiredField[] // Additional fields required by this platform
   setupInformation?: SetupInformation // Added setup information
   maxCharacterLimit?: number // Maximum characters allowed for posts
+  supportsMedia: boolean // Whether the platform supports media uploads
 }
 
 export abstract class BaseSocialPlatform {
@@ -254,6 +260,10 @@ export abstract class BaseSocialPlatform {
     return undefined
   }
 
+  supportsMedia(): boolean {
+    return false
+  }
+
   getPlatformInfo(): PlatformInfo {
     return {
       name: this.name,
@@ -266,7 +276,8 @@ export abstract class BaseSocialPlatform {
       destinationPlaceholder: this.getDestinationPlaceholder(),
       requiredFields: this.getRequiredFields(),
       setupInformation: this.getSetupInformation(),
-      maxCharacterLimit: this.getMaxCharacterLimit()
+      maxCharacterLimit: this.getMaxCharacterLimit(),
+      supportsMedia: this.supportsMedia()
     }
   }
 

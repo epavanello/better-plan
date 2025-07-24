@@ -123,6 +123,25 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
                 </div>
               </div>
               <p className="whitespace-pre-wrap">{renderContentWithLinks(post.content)}</p>
+              {post.media && post.media.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {post.media.map((media) => (
+                    <div key={media.id} className="relative">
+                      {media.mimeType.startsWith("image/") ? (
+                        <img
+                          src={`data:${media.mimeType};base64,${media.content}`}
+                          alt="Post media"
+                          className="h-20 w-20 rounded-lg border object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-lg border bg-muted">
+                          <span className="text-muted-foreground text-xs">Media</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           )
         })}

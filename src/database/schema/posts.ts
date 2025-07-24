@@ -50,7 +50,7 @@ export const posts = sqliteTable("posts", {
     .notNull()
 })
 
-export const postsRelations = relations(posts, ({ one }) => ({
+export const postsRelations = relations(posts, ({ one, many }) => ({
   integration: one(integrations, {
     fields: [posts.integrationId],
     references: [integrations.id]
@@ -58,6 +58,30 @@ export const postsRelations = relations(posts, ({ one }) => ({
   user: one(users, {
     fields: [posts.userId],
     references: [users.id]
+  }),
+  media: many(postMedia)
+}))
+
+// Table for Post Media
+export const postMedia = sqliteTable("post_media", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => ulid()),
+  postId: text("post_id")
+    .notNull()
+    .references(() => posts.id, { onDelete: "cascade" }),
+  // Store media content as base64 encoded string
+  content: text("content").notNull(),
+  mimeType: text("mime_type").notNull(), // e.g., "image/png", "image/jpeg"
+  createdAt: integer("created_at", { mode: "timestamp" })
+    .$defaultFn(() => new Date())
+    .notNull()
+})
+
+export const postMediaRelations = relations(postMedia, ({ one }) => ({
+  post: one(posts, {
+    fields: [postMedia.postId],
+    references: [posts.id]
   })
 }))
 
@@ -94,8 +118,12 @@ export const postDestinationsRelations = relations(postDestinations, ({ one }) =
 export type Post = typeof posts.$inferSelect
 export type InsertPost = typeof posts.$inferInsert
 
+export type PostMedia = typeof postMedia.$inferSelect
+export type InsertPostMedia = typeof postMedia.$inferInsert
+
 export type PostDestination = typeof postDestinations.$inferSelect
 export type InsertPostDestination = typeof postDestinations.$inferInsert
 
 export const insertPostSchema = createInsertSchema(posts)
 export const insertPostDestinationSchema = createInsertSchema(postDestinations)
+export const insertPostMediaSchema = createInsertSchema(postMedia)
