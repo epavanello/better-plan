@@ -1,0 +1,1 @@
+ALTER TABLE `posts` ADD `additional_fields` text;

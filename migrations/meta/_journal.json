@@ -29,6 +29,13 @@
       "when": 1753373425837,
       "tag": "0003_curly_doctor_spectrum",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1753435512506,
+      "tag": "0004_typical_crystal",
+      "breakpoints": true
     }
   ]
 }

@@ -26,6 +26,8 @@ export const integrations = sqliteTable("integrations", {
     .notNull()
 })
 
+export type Integration = typeof integrations.$inferSelect
+
 // Nuova tabella per le app credentials degli utenti
 export const userAppCredentials = sqliteTable("user_app_credentials", {
   id: text("id").primaryKey(),

@@ -1,4 +1,4 @@
-import type { InsertPost } from "@/database/schema"
+import type { InsertPost, Integration } from "@/database/schema"
 import type { Platform } from "@/database/schema"
 import { z } from "zod"
 
@@ -46,15 +46,7 @@ export interface PostData {
     content: string
     mimeType: string
   }[]
-  integration: {
-    id: string
-    platform: Platform
-    platformAccountId: string
-    platformAccountName: string
-    accessToken: string | null
-    refreshToken: string | null
-    expiresAt: Date | null
-  }
+  integration: Integration
 }
 
 export interface SetupCredentialLabels {
@@ -94,7 +86,7 @@ export interface PlatformInfo {
 }
 
 export abstract class BaseSocialPlatform {
-  constructor(protected name: Platform) {}
+  constructor(protected name: Platform) { }
 
   abstract validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean>
 

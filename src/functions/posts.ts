@@ -60,7 +60,8 @@ export const createPost = createServerFn({ method: "POST" })
       destinationType: data.destination?.type,
       destinationId: data.destination?.id,
       destinationName: data.destination?.name,
-      destinationMetadata: data.destination?.metadata ? JSON.stringify(data.destination.metadata) : undefined
+      destinationMetadata: data.destination?.metadata ? JSON.stringify(data.destination.metadata) : undefined,
+      additionalFields: data.additionalFields ? JSON.stringify(data.additionalFields) : undefined
     }
 
     const result = await db.insert(posts).values(postData).returning()

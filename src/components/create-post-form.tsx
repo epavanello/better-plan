@@ -300,9 +300,12 @@ export function CreatePostForm({
         onIsGeneratingChange={setIsAiGenerating}
       />
 
+      {/* Additional Fields */}
+      {renderAdditionalFields()}
+
       {/* Main Content Textarea */}
       <div className="space-y-2">
-        <Label htmlFor="content">Post Content</Label>
+        <Label htmlFor="content">Content</Label>
         <Textarea
           id="content"
           placeholder="What's on your mind?"
@@ -469,9 +472,6 @@ export function CreatePostForm({
           )}
         </div>
       )}
-
-      {/* Additional Fields */}
-      {renderAdditionalFields()}
 
       {/* Publish Options */}
       <Tabs

@@ -29,6 +29,7 @@ export const posts = sqliteTable("posts", {
   destinationId: text("destination_id"), // e.g., community URL, subreddit name
   destinationName: text("destination_name"), // e.g., "Build in Public", "r/webdev"
   destinationMetadata: text("destination_metadata"), // JSON string for additional metadata
+  additionalFields: text("additional_fields"), // JSON string for platform-specific fields
 
   // AI-related fields
   aiGenerated: integer("ai_generated", { mode: "boolean" }).default(false),
