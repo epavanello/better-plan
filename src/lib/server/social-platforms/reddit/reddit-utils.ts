@@ -49,6 +49,7 @@ export interface RedditSubmissionResponse {
           id: string
           url: string
           name: string
+          permalink: string
         }
       }>
     }

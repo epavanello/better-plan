@@ -1,5 +1,5 @@
 import { db } from "@/database/db"
-import { type InsertPost, postMedia, posts } from "@/database/schema"
+import { type InsertPost, type PostMedia, postMedia, posts } from "@/database/schema"
 import { PLATFORM_VALUES, type Platform } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { getEffectiveCredentials, getIntegrationWithValidToken } from "@/lib/server/integrations"
@@ -67,6 +67,8 @@ export const createPost = createServerFn({ method: "POST" })
     const result = await db.insert(posts).values(postData).returning()
     const post = result[0]
 
+    let insertedMedia: PostMedia[] = []
+
     // Save media if provided
     if (data.media && data.media.length > 0) {
       const mediaToInsert = data.media.map((m) => ({
@@ -74,7 +76,7 @@ export const createPost = createServerFn({ method: "POST" })
         content: m.content,
         mimeType: m.mimeType
       }))
-      await db.insert(postMedia).values(mediaToInsert)
+      insertedMedia = await db.insert(postMedia).values(mediaToInsert).returning()
     }
 
     // Save destination to recent destinations if provided
@@ -91,7 +93,11 @@ export const createPost = createServerFn({ method: "POST" })
           userId: post.userId,
           destination: data.destination,
           additionalFields: data.additionalFields,
-          media: data.media,
+          media: insertedMedia.map((m) => ({
+            content: m.content,
+            mimeType: m.mimeType,
+            id: m.id
+          })),
           integration
         })
       } catch (error) {

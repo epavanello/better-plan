@@ -20,6 +20,8 @@ import {
 import { RedditApiClient } from "./reddit/reddit-api-client"
 import { buildRedditAuthUrl, normalizeSubredditName } from "./reddit/reddit-utils"
 
+export type RedditPostType = "text" | "media"
+
 export class RedditPlatform extends BaseSocialPlatform {
   private readonly apiClient = new RedditApiClient()
 
@@ -113,19 +115,6 @@ export class RedditPlatform extends BaseSocialPlatform {
         maxLength: 300,
         required: true,
         helpText: "Post title is required for all Reddit posts"
-      },
-      {
-        key: "postType",
-        label: "Post type",
-        type: "select",
-        required: true,
-        helpText: "Choose whether to create a text, link, or media post.",
-        placeholder: "Select post type",
-        options: [
-          { value: "text", label: "Text post" },
-          { value: "link", label: "Link post" },
-          { value: "media", label: "Media post" }
-        ]
       }
     ]
   }
@@ -244,52 +233,39 @@ export class RedditPlatform extends BaseSocialPlatform {
         throw new Error("Subreddit destination is required for Reddit posts")
       }
 
-      // Get title and post type from additional fields
       const title = postData.additionalFields?.title as string
-      const postType = (postData.additionalFields?.postType as string) || "text"
-
       if (!title) {
         throw new Error("Post title is required for Reddit posts")
       }
 
+      const postType: RedditPostType = postData.media && postData.media.length > 0 ? "media" : "text"
       const subredditName = normalizeSubredditName(postData.destination.id)
 
       let url: string | undefined
-      if (postType === "link") {
-        // For link posts, extract URL from content or use entire content as URL
-        const urlMatch = postData.content.match(/(https?:\/\/[^\s]+)/i)
-        url = urlMatch ? urlMatch[1] : postData.content.trim()
+      let content = postData.content
 
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-          throw new Error("Invalid URL for link post")
+      if (postType === "media") {
+        if (!postData.media || postData.media.length === 0) {
+          throw new Error("Media post requires at least one media item.")
         }
+        if (postData.media.length > 1) {
+          throw new Error("Reddit only supports one media item per post.")
+        }
+
+        const mediaToSave = postData.media[0]
+        if (!mediaToSave.id) {
+          throw new Error("Media ID not found. Media should be saved to database before posting.")
+        }
+
+        url = `${envConfig.APP_URL}/api/media/${mediaToSave.id}`
+        content = ""
       }
 
-      // Handle media uploads
-      const mediaUrls: string[] = []
-      if (postData.media && postData.media.length > 0) {
-        if (postType !== "media") {
-          throw new Error("To upload media, please select the 'Media post' type.")
-        }
-
-        // We need the user's Reddit username to upload to their profile
-        const userInfo = await this.apiClient.getUserInfo(accessToken)
-
-        for (const media of postData.media) {
-          const uploadResult = await this.apiClient.uploadMedia(media.content, media.mimeType, accessToken, userInfo.name)
-          mediaUrls.push(uploadResult.imageUrl)
-        }
-      }
-
-      // For media posts, we treat them as text posts with embedded media
-      const isLinkPost = postType === "link"
-      const result = await this.apiClient.submitPost(subredditName, title, postData.content, accessToken, isLinkPost, url, mediaUrls)
-
-      const postUrl = `https://www.reddit.com/r/${subredditName}/comments/${result.id}/`
+      const result = await this.apiClient.submitPost(subredditName, title, content, accessToken, postType, url)
 
       return {
         success: true,
-        postUrl
+        postUrl: result.permalink
       }
     } catch (error) {
       console.error("Failed to post to Reddit:", error)

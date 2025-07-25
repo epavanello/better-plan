@@ -45,6 +45,7 @@ export interface PostData {
     // base64 encoded string
     content: string
     mimeType: string
+    id?: string // Media ID after being saved to database
   }[]
   integration: Integration
 }
@@ -86,7 +87,7 @@ export interface PlatformInfo {
 }
 
 export abstract class BaseSocialPlatform {
-  constructor(protected name: Platform) { }
+  constructor(protected name: Platform) {}
 
   abstract validateCredentials(accessToken: string, effectiveCredentials: { clientId: string; clientSecret: string }): Promise<boolean>
 

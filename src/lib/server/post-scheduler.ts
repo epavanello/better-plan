@@ -25,11 +25,11 @@ export async function processScheduledPosts() {
 
       const destination: PostDestination | undefined = post.destinationType
         ? {
-          type: post.destinationType,
-          id: post.destinationId ?? "",
-          name: post.destinationName ?? "",
-          metadata: post.destinationMetadata ? JSON.parse(post.destinationMetadata) : undefined
-        }
+            type: post.destinationType,
+            id: post.destinationId ?? "",
+            name: post.destinationName ?? "",
+            metadata: post.destinationMetadata ? JSON.parse(post.destinationMetadata) : undefined
+          }
         : undefined
 
       await postToSocialMedia({
@@ -38,8 +38,7 @@ export async function processScheduledPosts() {
         userId: post.userId,
         destination: destination,
         additionalFields: post.additionalFields ? JSON.parse(post.additionalFields) : undefined,
-        media:
-          post.media.length > 0 ? post.media.map((m) => ({ content: m.content, mimeType: m.mimeType })) : undefined,
+        media: post.media.length > 0 ? post.media.map((m) => ({ content: m.content, mimeType: m.mimeType, id: m.id })) : undefined,
         integration
       })
     } catch (error) {

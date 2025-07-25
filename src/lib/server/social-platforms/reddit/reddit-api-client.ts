@@ -1,3 +1,4 @@
+import type { RedditPostType } from "../reddit-platform"
 import type { RedditSubmission, RedditSubmissionResponse, RedditSubreddit, RedditTokenResponse, RedditUser } from "./reddit-utils"
 
 export class RedditApiClient {
@@ -136,88 +137,48 @@ export class RedditApiClient {
     }
   }
 
-  async uploadMedia(mediaContent: string, mimeType: string, accessToken: string, userName: string): Promise<{ imageUrl: string }> {
-    const formData = new FormData()
-    const buffer = Buffer.from(mediaContent, "base64")
-    const blob = new Blob([buffer], { type: mimeType })
-
-    // The filename extension is important for some APIs
-    const extension = mimeType.split("/")[1] || "png"
-    formData.append("file", blob, `image.${extension}`)
-
-    // We upload the image to the user's own profile page, which acts like a subreddit (u_username)
-    // This provides a URL that can be used in posts on any subreddit.
-    const response = await this.makeRequest(`/r/u_${userName}/api/upload_sr_img`, accessToken, {
-      method: "POST",
-      body: formData
-    })
-
-    const result = await response.json()
-
-    if (result.errors?.length > 0) {
-      throw new Error(`Reddit media upload error: ${result.errors[0]}`)
-    }
-    if (!result.img_src) {
-      throw new Error("Reddit media upload failed: no img_src returned.")
-    }
-
-    return { imageUrl: result.img_src }
-  }
-
   async submitPost(
     subreddit: string,
     title: string,
     content: string,
     accessToken: string,
-    isLinkPost = false,
-    url?: string,
-    mediaUrls?: string[]
+    postType: RedditPostType = "text",
+    url?: string
   ): Promise<{ id: string; permalink: string }> {
-    // Prepare form data
-    const formData = new FormData()
+    const formData = new URLSearchParams()
     formData.append("sr", subreddit)
     formData.append("title", title)
     formData.append("api_type", "json")
+    formData.append("kind", postType)
 
-    let postKind: "self" | "link" | "image" = isLinkPost ? "link" : "self"
-    let finalContent = content
-
-    // If there are media URLs, we create a self-post with markdown-embedded images.
-    if (mediaUrls && mediaUrls.length > 0) {
-      const mediaMarkdown = mediaUrls.map((url) => `![image](${url})`).join("\n\n")
-      finalContent = content ? `${content}\n\n${mediaMarkdown}` : mediaMarkdown
-
-      // If there's no text content, we could consider making an image post, but for consistency
-      // and support for multiple images, we'll use a self-post with embedded images.
-      postKind = "self"
-    }
-
-    formData.append("kind", postKind)
-
-    if (postKind === "link" && url) {
+    if (postType === "media" && url) {
       formData.append("url", url)
     } else {
-      // For self posts, use the content as text body
-      formData.append("text", finalContent)
+      formData.append("text", content)
     }
 
     const response = await this.makeRequest("/api/submit", accessToken, {
       method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded"
+      },
       body: formData
     })
 
     const result: RedditSubmissionResponse = await response.json()
 
     if (result.json.errors && result.json.errors.length > 0) {
-      throw new Error(`Reddit API error: ${result.json.errors[0][1]}`)
+      const errorMessage = result.json.errors[0].join(": ")
+      throw new Error(`Reddit API error: ${errorMessage}`)
     }
 
     if (!result.json.data?.things?.[0]?.data?.id) {
       throw new Error("Failed to create Reddit post: No post ID returned")
     }
 
-    const postId = result.json.data.things[0].data.id
-    const postUrl = `https://www.reddit.com/r/${subreddit}/comments/${postId}/`
+    const postData = result.json.data.things[0].data
+    const postId = postData.id
+    const postUrl = `https://www.reddit.com${postData.permalink}`
 
     return {
       id: postId,
