@@ -57,7 +57,7 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
       <div className="divide-y divide-border">
         {posts.map((post) => {
           const now = new Date()
-
+          const dateRef = post.postedAt ?? post.scheduledAt ?? post.createdAt
           return (
             <div key={post.id} className="@container p-4">
               <div className="mb-2 flex @[30rem]:flex-row flex-col items-start @[30rem]:items-center justify-between gap-y-2 text-muted-foreground text-sm">
@@ -80,8 +80,8 @@ export function PostsList({ posts, isPending, onDeletePost }: PostsListProps) {
                   )}
                 </div>
                 <div className="flex @[30rem]:w-auto w-full items-center @[30rem]:justify-start justify-between gap-2">
-                  <time title={post.createdAt.toLocaleString()} dateTime={post.createdAt.toISOString()}>
-                    {formatRelative(post.createdAt, now)}
+                  <time title={dateRef.toLocaleString()} dateTime={dateRef.toISOString()}>
+                    {formatRelative(dateRef, now)}
                   </time>
                   <div className="flex items-center gap-2">
                     {post.postUrl && (

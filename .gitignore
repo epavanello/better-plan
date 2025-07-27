@@ -28,3 +28,5 @@ routeTree.gen.ts
 .tanstack/
 .nitro/
 local.db
+.env.development
+.env.staging

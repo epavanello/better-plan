@@ -15,6 +15,8 @@ export function Footer() {
             </p>
             <span className="hidden text-muted-foreground md:inline">•</span>
             <p className="text-muted-foreground text-sm">AI-powered social media management</p>
+            <span className="hidden text-muted-foreground md:inline">•</span>
+            <p className="text-muted-foreground text-sm">v{APP_VERSION}</p>
           </div>
           <div className="flex items-center gap-4">
             <a

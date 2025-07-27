@@ -170,7 +170,7 @@ export const getPosts = createServerFn({ method: "GET" })
       with: {
         media: true
       },
-      orderBy: [desc(posts.createdAt)]
+      orderBy: [desc(posts.scheduledAt), desc(posts.postedAt)]
     })
 
     return userPosts.map((post) => ({

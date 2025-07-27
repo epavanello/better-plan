@@ -4,6 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite dev",
+    "dev:staging": "vite dev --mode staging",
     "build": "vite build && tsc --noEmit",
     "start": "dotenv -e .env -- node .output/server/index.mjs",
     "lint": "biome check",
