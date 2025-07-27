@@ -65,7 +65,7 @@ function RouteComponent() {
     return currentIntegration?.supportsFetchingRecentPosts ?? false
   }, [currentIntegration])
 
-  const { mutate: create, isPending } = useMutation({
+  const { mutateAsync: create, isPending } = useMutation({
     mutationFn: createPost,
     onSuccess: (_, { data: { scheduledAt } }) => {
       toast.success(scheduledAt ? "Post scheduled successfully!" : "Post published successfully!")
@@ -106,8 +106,8 @@ function RouteComponent() {
     fetchRecent({ data: { integrationId: selectedIntegrationId } })
   }
 
-  const handleCreatePost = (data: CreatePostData) => {
-    create({
+  const handleCreatePost = async (data: CreatePostData) => {
+    await create({
       data
     })
   }
@@ -174,31 +174,29 @@ function RouteComponent() {
           <div className="space-y-6 xl:grid xl:grid-cols-3 xl:gap-6 xl:space-y-0">
             {/* Create Post Section - Takes 2 columns on desktop */}
             <div className="xl:col-span-2">
-              <div className="xl:sticky xl:top-44">
-                <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2">
-                    <PenTool className="h-5 w-5" />
-                    <h2 className="font-semibold text-lg">Create New Post</h2>
-                  </div>
-                  {currentIntegration && (
-                    <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
-                      {platformIcons[currentIntegration.platform]}
-                      <span className="truncate font-medium">{currentIntegration.platformAccountName}</span>
-                    </div>
-                  )}
+              <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-2">
+                  <PenTool className="h-5 w-5" />
+                  <h2 className="font-semibold text-lg">Create New Post</h2>
                 </div>
-
-                <CreatePostForm
-                  selectedIntegrationId={selectedIntegrationId}
-                  currentIntegrationName={currentIntegration?.platformAccountName}
-                  currentPlatform={currentIntegration?.platform}
-                  platformInfo={platformInfo}
-                  isPending={isPending}
-                  initialScheduledDate={initialScheduledDate}
-                  onCreatePost={handleCreatePost}
-                  onValidationError={handleValidationError}
-                />
+                {currentIntegration && (
+                  <div className="flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-sm">
+                    {platformIcons[currentIntegration.platform]}
+                    <span className="truncate font-medium">{currentIntegration.platformAccountName}</span>
+                  </div>
+                )}
               </div>
+
+              <CreatePostForm
+                selectedIntegrationId={selectedIntegrationId}
+                currentIntegrationName={currentIntegration?.platformAccountName}
+                currentPlatform={currentIntegration?.platform}
+                platformInfo={platformInfo}
+                isPending={isPending}
+                initialScheduledDate={initialScheduledDate}
+                onCreatePost={handleCreatePost}
+                onValidationError={handleValidationError}
+              />
             </div>
 
             {/* Posts List Section - Takes 1 column on desktop */}

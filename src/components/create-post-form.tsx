@@ -33,7 +33,7 @@ interface CreatePostFormProps {
   platformInfo?: PlatformInfo
   isPending: boolean
   initialScheduledDate?: Date
-  onCreatePost: (data: CreatePostData) => void
+  onCreatePost: (data: CreatePostData) => Promise<void>
   onValidationError: (message: string) => void
 }
 
@@ -85,7 +85,7 @@ export function CreatePostForm({
     staleTime: 5 * 60 * 1000 // 5 minutes
   })
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!selectedIntegrationId) {
       onValidationError("Please select a platform.")
       return
@@ -126,23 +126,24 @@ export function CreatePostForm({
       }
     }
 
-    onCreatePost({
-      integrationId: selectedIntegrationId,
-      content,
-      scheduledAt: isScheduleMode ? new Date(scheduledDateTime) : undefined,
-      destination: selectedDestination,
-      additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined,
-      media: media.length > 0 ? media : undefined
-    })
-
-    // Reset form after successful submission
-    setContent("")
-    setScheduledDateTime("")
-    setIsScheduleMode(false)
-    setMedia([])
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ""
-    }
+    try {
+      await onCreatePost({
+        integrationId: selectedIntegrationId,
+        content,
+        scheduledAt: isScheduleMode ? new Date(scheduledDateTime) : undefined,
+        destination: selectedDestination,
+        additionalFields: Object.keys(additionalFields).length > 0 ? additionalFields : undefined,
+        media: media.length > 0 ? media : undefined
+      })
+      // Reset form after successful submission
+      setContent("")
+      setScheduledDateTime("")
+      setIsScheduleMode(false)
+      setMedia([])
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    } catch {}
   }
 
   const handleCustomDestination = () => {

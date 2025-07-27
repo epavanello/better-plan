@@ -19,7 +19,7 @@ export default defineConfig({
     tailwindcss()
   ],
   define: {
-    'APP_VERSION': JSON.stringify(process.env.npm_package_version),
+    APP_VERSION: JSON.stringify(process.env.npm_package_version)
   },
   build: {
     // Ensure deterministic builds
