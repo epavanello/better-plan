@@ -137,6 +137,20 @@ export class RedditApiClient {
     }
   }
 
+  async validateSubreddit(subredditName: string, accessToken: string): Promise<boolean> {
+    try {
+      const cleanName = subredditName.replace(/^r\//, "").trim()
+      const response = await this.makeRequest(`/r/${cleanName}/about.json`, accessToken)
+      const data = await response.json()
+
+      // Check if the subreddit exists and we have access to it
+      return data?.data?.display_name !== undefined
+    } catch (error) {
+      console.error(`[Reddit API] Error validating subreddit "${subredditName}":`, error)
+      return false
+    }
+  }
+
   async submitPost(
     subreddit: string,
     title: string,
@@ -145,11 +159,24 @@ export class RedditApiClient {
     postType: RedditPostType = "text",
     url?: string
   ): Promise<{ id: string; permalink: string }> {
+    // Sanitize subreddit name: remove r/ prefix if present and ensure it's clean
+    const cleanSubreddit = subreddit.replace(/^r\//, "").trim()
+
+    if (!cleanSubreddit) {
+      throw new Error("Invalid subreddit name provided")
+    }
+
+    // Validate subreddit exists and we have access to it
+    const isValidSubreddit = await this.validateSubreddit(cleanSubreddit, accessToken)
+    if (!isValidSubreddit) {
+      throw new Error(`Subreddit "${cleanSubreddit}" does not exist or you don't have access to it`)
+    }
+
     const formData = new URLSearchParams()
-    formData.append("sr", subreddit)
+    formData.append("sr", cleanSubreddit)
     formData.append("title", title)
     formData.append("api_type", "json")
-    formData.append("kind", postType)
+    formData.append("kind", postType === "media" ? "link" : "self")
 
     if (postType === "media" && url) {
       formData.append("url", url)
@@ -169,16 +196,17 @@ export class RedditApiClient {
 
     if (result.json.errors && result.json.errors.length > 0) {
       const errorMessage = result.json.errors[0].join(": ")
+      console.error(`[Reddit API] Submit error for subreddit "${cleanSubreddit}":`, result.json.errors)
       throw new Error(`Reddit API error: ${errorMessage}`)
     }
 
-    if (!result.json.data?.things?.[0]?.data?.id) {
+    if (!result.json.data?.id) {
       throw new Error("Failed to create Reddit post: No post ID returned")
     }
 
-    const postData = result.json.data.things[0].data
+    const postData = result.json.data
     const postId = postData.id
-    const postUrl = `https://www.reddit.com${postData.permalink}`
+    const postUrl = postData.url
 
     return {
       id: postId,

@@ -44,14 +44,10 @@ export interface RedditSubmissionResponse {
   json: {
     errors: string[][]
     data?: {
-      things: Array<{
-        data: {
-          id: string
-          url: string
-          name: string
-          permalink: string
-        }
-      }>
+      id: string
+      url: string
+      name: string
+      drafts_count: number
     }
   }
 }
