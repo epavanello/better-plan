@@ -46,7 +46,7 @@ function RouteComponent() {
   // Get posts for the selected integration
   const { data: posts = [] } = useQuery({
     queryKey: ["posts", selectedIntegrationId],
-    queryFn: () => getPosts({ data: { integrationId: selectedIntegrationId } }),
+    queryFn: () => getPosts({ data: { integrationId: selectedIntegrationId! } }),
     enabled: !!selectedIntegrationId
   })
 

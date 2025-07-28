@@ -2,8 +2,7 @@ import { db } from "@/database/db"
 import { posts } from "@/database/schema"
 import { and, eq, lte } from "drizzle-orm"
 import { getIntegrationWithValidToken } from "./integrations"
-import { postToSocialMedia } from "./post-service"
-import type { PostDestination } from "./social-platforms/base-platform"
+import { postService } from "./post-service"
 
 export async function processScheduledPosts() {
   console.log("Processing scheduled posts...")
@@ -20,27 +19,8 @@ export async function processScheduledPosts() {
 
   for (const post of scheduledPosts) {
     try {
-      // Get integration with valid token
-      const integration = await getIntegrationWithValidToken(post.integrationId, post.userId)
-
-      const destination: PostDestination | undefined = post.destinationType
-        ? {
-            type: post.destinationType,
-            id: post.destinationId ?? "",
-            name: post.destinationName ?? "",
-            metadata: post.destinationMetadata ? JSON.parse(post.destinationMetadata) : undefined
-          }
-        : undefined
-
-      await postToSocialMedia({
-        id: post.id,
-        content: post.content,
-        userId: post.userId,
-        destination: destination,
-        additionalFields: post.additionalFields ? JSON.parse(post.additionalFields) : undefined,
-        media: post.media.length > 0 ? post.media.map((m) => ({ content: m.content, mimeType: m.mimeType, id: m.id })) : undefined,
-        integration
-      })
+      // Use the post service to publish the post
+      await postService.publish(post.id)
     } catch (error) {
       console.error(`Failed to process post ${post.id}:`, error)
       await db

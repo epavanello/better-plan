@@ -21,7 +21,7 @@ interface IntegrationsListProps {
 function usePlatformSetup(platform: Platform) {
   const { data: platformStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["platform-status", platform],
-    queryFn: () => getUserPlatformStatus({ data: platform }),
+    queryFn: () => getUserPlatformStatus({ data: { platform } }),
     enabled: true
   })
 
@@ -81,7 +81,12 @@ export function IntegrationsList({
                       <p className="text-muted-foreground text-sm">{integration.platformAccountName}</p>
                     </div>
                   </div>
-                  <Button variant="destructive" size="icon" onClick={() => remove({ data: integration.id })} disabled={isRemovePending}>
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={() => remove({ data: { integrationId: integration.id } })}
+                    disabled={isRemovePending}
+                  >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
@@ -139,7 +144,7 @@ export function IntegrationsList({
                             size="sm"
                             onClick={() =>
                               setupInfo.removeCredentials?.({
-                                data: platformInfo.name
+                                data: { platform: platformInfo.name }
                               })
                             }
                             disabled={setupInfo.isRemovingCredentials}

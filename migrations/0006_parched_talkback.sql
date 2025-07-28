@@ -1,0 +1,1 @@
+ALTER TABLE `content_suggestions` ALTER COLUMN "post_id" TO "post_id" text REFERENCES posts(id) ON DELETE set null ON UPDATE no action;

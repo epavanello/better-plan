@@ -1,7 +1,8 @@
-import type { Platform } from "@/database/schema/integrations"
+import { PLATFORM_VALUES } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
 import { createServerFn } from "@tanstack/react-start"
+import { z } from "zod"
 
 // Funzione per ottenere informazioni di tutte le piattaforme
 export const getAllPlatformInfo = createServerFn({ method: "GET" }).handler(async () => {
@@ -10,8 +11,8 @@ export const getAllPlatformInfo = createServerFn({ method: "GET" }).handler(asyn
 
 // Funzione per ottenere informazioni di una specifica piattaforma
 export const getPlatformInfo = createServerFn({ method: "POST" })
-  .validator((platform: Platform) => platform)
-  .handler(async ({ data: platform }) => {
+  .validator(z.object({ platform: z.enum(PLATFORM_VALUES) }))
+  .handler(async ({ data: { platform } }) => {
     return PlatformFactory.getPlatformInfo(platform)
   })
 
@@ -22,8 +23,8 @@ export const getImplementedPlatforms = createServerFn({ method: "GET" }).handler
 
 // Funzione standard per iniziare l'autorizzazione di una piattaforma
 export const startPlatformAuthorization = createServerFn({ method: "POST" })
-  .validator((platform: Platform) => platform)
-  .handler(async ({ data: platform }) => {
+  .validator(z.object({ platform: z.enum(PLATFORM_VALUES) }))
+  .handler(async ({ data: { platform } }) => {
     const session = await getSessionOrThrow()
     const platformInstance = PlatformFactory.getPlatform(platform)
 
@@ -32,5 +33,5 @@ export const startPlatformAuthorization = createServerFn({ method: "POST" })
     }
 
     // Ora chiamiamo direttamente il metodo della classe specifica
-    return await platformInstance.startAuthorization(session.user.id)
+    return platformInstance.startAuthorization(session.user.id)
   })

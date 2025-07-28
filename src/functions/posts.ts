@@ -1,15 +1,14 @@
 import { db } from "@/database/db"
-import { type InsertPost, type PostMedia, postMedia, posts } from "@/database/schema"
-import { PLATFORM_VALUES, type Platform } from "@/database/schema/integrations"
+import { posts } from "@/database/schema"
+import { PLATFORM_VALUES } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { getEffectiveCredentials, getIntegrationWithValidToken } from "@/lib/server/integrations"
-import { postToSocialMedia } from "@/lib/server/post-service"
+import { postService } from "@/lib/server/post-service"
 import { PostDestinationService } from "@/lib/server/posts/destination-service"
 import { DestinationSchema } from "@/lib/server/social-platforms/base-platform"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
 import { createServerFn } from "@tanstack/react-start"
 import { and, desc, eq, sql } from "drizzle-orm"
-import { ulid } from "ulid"
 import { z } from "zod"
 
 const createPostSchema = z.object({
@@ -27,6 +26,8 @@ const createPostSchema = z.object({
     )
     .optional()
 })
+
+export type CreatePostInput = z.infer<typeof createPostSchema>
 
 export const createPost = createServerFn({ method: "POST" })
   .validator(createPostSchema)
@@ -48,94 +49,42 @@ export const createPost = createServerFn({ method: "POST" })
       // For now, we'll validate it at post time
     }
 
-    const postData: InsertPost = {
-      id: ulid(),
-      content: data.content,
-      integrationId: data.integrationId,
+    // Use the PostService to create the post
+    const result = await postService.create({
       userId: session.user.id,
-      status: data.scheduledAt ? "scheduled" : "draft",
+      integrationId: data.integrationId,
+      content: data.content,
       scheduledAt: data.scheduledAt,
-      source: "native",
-      // Add destination fields
-      destinationType: data.destination?.type,
-      destinationId: data.destination?.id,
-      destinationName: data.destination?.name,
-      destinationMetadata: data.destination?.metadata ? JSON.stringify(data.destination.metadata) : undefined,
-      additionalFields: data.additionalFields ? JSON.stringify(data.additionalFields) : undefined
-    }
-
-    const result = await db.insert(posts).values(postData).returning()
-    const post = result[0]
-
-    let insertedMedia: PostMedia[] = []
-
-    // Save media if provided
-    if (data.media && data.media.length > 0) {
-      const mediaToInsert = data.media.map((m) => ({
-        postId: post.id,
-        content: m.content,
-        mimeType: m.mimeType
-      }))
-      insertedMedia = await db.insert(postMedia).values(mediaToInsert).returning()
-    }
+      destination: data.destination,
+      additionalFields: data.additionalFields,
+      media: data.media,
+      source: "native"
+    })
 
     // Save destination to recent destinations if provided
     if (data.destination) {
       await destinationService.saveRecentDestination(session.user.id, integration.platform, data.destination)
     }
 
-    // If it's a draft, try to post immediately
-    if (post.status === "draft") {
-      try {
-        await postToSocialMedia({
-          id: post.id,
-          content: post.content,
-          userId: post.userId,
-          destination: data.destination,
-          additionalFields: data.additionalFields,
-          media: insertedMedia.map((m) => ({
-            content: m.content,
-            mimeType: m.mimeType,
-            id: m.id
-          })),
-          integration
-        })
-      } catch (error) {
-        console.error("Failed to post immediately", error)
-        await db
-          .update(posts)
-          .set({
-            status: "failed",
-            failReason: error instanceof Error ? error.message : "Unknown error"
-          })
-          .where(eq(posts.id, post.id))
-        throw new Error("Failed to post to social media")
-      }
-    }
-
-    return post
+    return result.post
   })
 
 export const getRecentDestinations = createServerFn({ method: "POST" })
-  .validator((payload: { platform: Platform; limit?: number }) =>
-    z.object({ platform: z.enum(PLATFORM_VALUES), limit: z.number().optional() }).parse(payload)
-  )
+  .validator(z.object({ platform: z.enum(PLATFORM_VALUES), limit: z.number().optional() }))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
     const destinationService = new PostDestinationService()
 
-    return await destinationService.getRecentDestinations(session.user.id, data.platform, data.limit || 10)
+    return destinationService.getRecentDestinations(session.user.id, data.platform, data.limit || 10)
   })
 
 export const createDestinationFromInput = createServerFn({ method: "POST" })
-  .validator((payload: unknown) =>
-    z
-      .object({
-        platform: z.enum(PLATFORM_VALUES),
-        input: z.string().min(1),
-        integrationId: z.string()
-      })
-      .parse(payload)
+  .validator(
+    z.object({
+      platform: z.enum(PLATFORM_VALUES),
+      input: z.string().min(1),
+      integrationId: z.string()
+    })
   )
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
@@ -158,7 +107,7 @@ export const createDestinationFromInput = createServerFn({ method: "POST" })
   })
 
 export const getPosts = createServerFn({ method: "GET" })
-  .validator((payload: unknown) => z.object({ integrationId: z.string() }).parse(payload))
+  .validator(z.object({ integrationId: z.string() }))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
@@ -170,7 +119,7 @@ export const getPosts = createServerFn({ method: "GET" })
       with: {
         media: true
       },
-      orderBy: [desc(posts.scheduledAt), desc(posts.postedAt)]
+      orderBy: [desc(posts.createdAt)]
     })
 
     return userPosts.map((post) => ({
@@ -187,9 +136,7 @@ export const getPosts = createServerFn({ method: "GET" })
   })
 
 export const deletePost = createServerFn({ method: "POST" })
-  .validator((payload: unknown) => {
-    return z.object({ id: z.string() }).parse(payload)
-  })
+  .validator(z.object({ id: z.string() }))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 
@@ -206,7 +153,7 @@ export const deletePost = createServerFn({ method: "POST" })
   })
 
 export const fetchRecentSocialPosts = createServerFn({ method: "POST" })
-  .validator((payload: { integrationId: string }) => z.object({ integrationId: z.string() }).parse(payload))
+  .validator(z.object({ integrationId: z.string() }))
   .handler(async ({ data }) => {
     const session = await getSessionOrThrow()
 

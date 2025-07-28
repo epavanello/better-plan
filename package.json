@@ -13,7 +13,6 @@
     "dev:docker": "docker compose -f docker-compose.dev.yaml up -d",
     "dev:docker:down": "docker compose -f docker-compose.dev.yaml down",
     "db:generate": "drizzle-kit generate --dialect=turso --schema=src/database/schema/index.ts --out=migrations",
-    "db:migrate": "drizzle-kit migrate --dialect=turso --schema=src/database/schema/index.ts --out=migrations",
     "db:studio": "drizzle-kit studio",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",

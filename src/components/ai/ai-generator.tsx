@@ -1,26 +1,15 @@
 import { Button } from "@/components/ui/button"
-import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { checkAiAccess, generateAiContent } from "@/functions/ai"
 import { useMutation, useQuery } from "@tanstack/react-query"
-import { ChevronDown, ChevronUp, History, Loader2, Lock, Sparkles, Zap } from "lucide-react"
+import { History, Loader2, Lock, Sparkles, Zap } from "lucide-react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { type AiTuningParameters, SuggestionTuningPanel } from "../content-suggestions/suggestion-tuning-panel"
 
-export interface AiTuningParameters {
-  temperature?: number
-  maxTokens?: number
-  styleOverride?: string
-  toneOverride?: string
-  lengthOverride?: string
-  useEmojisOverride?: boolean
-  useHashtagsOverride?: boolean
-  customInstructionsOverride?: string
-}
+export type { AiTuningParameters }
 
 export interface GenerationHistory {
   id: string
@@ -128,7 +117,7 @@ export function AiGenerator({
     generateContent({
       data: {
         prompt: enhancedPrompt,
-        integrationId: selectedIntegrationId,
+        integrationId: selectedIntegrationId!,
         temperature: aiParameters.temperature,
         maxTokens: aiParameters.maxTokens,
         styleOverride: aiParameters.styleOverride as "casual" | "formal" | "humorous" | "professional" | "conversational" | undefined,
@@ -218,156 +207,6 @@ export function AiGenerator({
     )
   }
 
-  const renderAdvancedSettings = () => (
-    <div className="space-y-3 rounded-lg border bg-muted/30 p-3">
-      <div className="flex items-center justify-between">
-        <Label className="font-medium text-sm">AI Tuning Parameters</Label>
-        <Button type="button" variant="ghost" size="sm" onClick={() => setShowAdvancedSettings(!showAdvancedSettings)}>
-          {showAdvancedSettings ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-        </Button>
-      </div>
-
-      {showAdvancedSettings && (
-        <div className="space-y-3">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label htmlFor="temperature" className="text-sm">
-                Creativity ({aiParameters.temperature})
-              </Label>
-              <input
-                id="temperature"
-                type="range"
-                min={0}
-                max={1}
-                step={0.1}
-                value={aiParameters.temperature ?? 0.7}
-                onChange={(e) => setAiParameters((prev) => ({ ...prev, temperature: Number(e.target.value) }))}
-                className="h-2 w-full cursor-pointer appearance-none rounded-lg bg-gray-200"
-              />
-              <div className="flex justify-between text-muted-foreground text-xs">
-                <span>Conservative</span>
-                <span>Creative</span>
-              </div>
-            </div>
-
-            <div className="space-y-1">
-              <Label htmlFor="maxTokens" className="text-sm">
-                Max Length
-              </Label>
-              <Input
-                id="maxTokens"
-                type="number"
-                min={50}
-                max={500}
-                value={aiParameters.maxTokens || 150}
-                onChange={(e) => setAiParameters((prev) => ({ ...prev, maxTokens: Number(e.target.value) }))}
-                className="w-full"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="space-y-1">
-              <Label className="text-sm">Style Override</Label>
-              <Select
-                value={aiParameters.styleOverride}
-                onValueChange={(value) => setAiParameters((prev) => ({ ...prev, styleOverride: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Use profile default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="casual">Casual</SelectItem>
-                  <SelectItem value="formal">Formal</SelectItem>
-                  <SelectItem value="humorous">Humorous</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="conversational">Conversational</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-1">
-              <Label className="text-sm">Tone Override</Label>
-              <Select
-                value={aiParameters.toneOverride}
-                onValueChange={(value) => setAiParameters((prev) => ({ ...prev, toneOverride: value || undefined }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Use profile default" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="friendly">Friendly</SelectItem>
-                  <SelectItem value="professional">Professional</SelectItem>
-                  <SelectItem value="authoritative">Authoritative</SelectItem>
-                  <SelectItem value="inspirational">Inspirational</SelectItem>
-                  <SelectItem value="educational">Educational</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label className="text-sm">Length Override</Label>
-            <Select
-              value={aiParameters.lengthOverride}
-              onValueChange={(value) => setAiParameters((prev) => ({ ...prev, lengthOverride: value || undefined }))}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Use profile default" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="short">Short (1-2 sentences)</SelectItem>
-                <SelectItem value="medium">Medium (3-5 sentences)</SelectItem>
-                <SelectItem value="long">Long (6+ sentences)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex flex-wrap gap-3">
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="useEmojisOverride"
-                checked={aiParameters.useEmojisOverride ?? false}
-                onCheckedChange={(checked) =>
-                  setAiParameters((prev) => ({ ...prev, useEmojisOverride: checked === true ? true : undefined }))
-                }
-              />
-              <Label htmlFor="useEmojisOverride" className="text-sm">
-                Force emojis
-              </Label>
-            </div>
-
-            <div className="flex items-center space-x-2">
-              <Checkbox
-                id="useHashtagsOverride"
-                checked={aiParameters.useHashtagsOverride ?? false}
-                onCheckedChange={(checked) =>
-                  setAiParameters((prev) => ({ ...prev, useHashtagsOverride: checked === true ? true : undefined }))
-                }
-              />
-              <Label htmlFor="useHashtagsOverride" className="text-sm">
-                Force hashtags
-              </Label>
-            </div>
-          </div>
-
-          <div className="space-y-1">
-            <Label htmlFor="customInstructionsOverride" className="text-sm">
-              Custom Instructions Override
-            </Label>
-            <Textarea
-              id="customInstructionsOverride"
-              placeholder="Override your profile's custom instructions for this generation..."
-              value={aiParameters.customInstructionsOverride || ""}
-              onChange={(e) => setAiParameters((prev) => ({ ...prev, customInstructionsOverride: e.target.value || undefined }))}
-              rows={2}
-            />
-          </div>
-        </div>
-      )}
-    </div>
-  )
-
   return (
     <div className="w-full space-y-4">
       {!showAiInput || !isAiAvailable ? (
@@ -416,7 +255,7 @@ export function AiGenerator({
           </div>
 
           {/* Advanced AI Settings */}
-          {renderAdvancedSettings()}
+          <SuggestionTuningPanel parameters={aiParameters} onParametersChange={setAiParameters} isGenerating={isGenerating} />
 
           {/* Quick Adjustment Buttons */}
           {currentContent && (

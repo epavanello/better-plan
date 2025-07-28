@@ -36,6 +36,20 @@
       "when": 1753435512506,
       "tag": "0004_typical_crystal",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1753717449497,
+      "tag": "0005_great_william_stryker",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1753720099524,
+      "tag": "0006_parched_talkback",
+      "breakpoints": true
     }
   ]
 }

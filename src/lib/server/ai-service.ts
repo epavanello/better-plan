@@ -3,7 +3,7 @@ import { openai } from "@ai-sdk/openai"
 import { generateText } from "ai"
 import { AiContextService } from "./ai/context-service"
 import { AiPromptBuilder } from "./ai/prompt-builder"
-import type { AiAccessCheck, AiGenerationOptions, AiGenerationResult } from "./ai/types"
+import type { AiAccessCheck, AiGenerationOptions, AiGenerationResult, SuggestionGenerationOptions } from "./ai/types"
 import { AiUsageService } from "./ai/usage-service"
 
 export class AiService {
@@ -63,6 +63,24 @@ export class AiService {
         error: error instanceof Error ? error.message : "Unknown error occurred"
       }
     }
+  }
+
+  async generateContentSuggestions(options: SuggestionGenerationOptions): Promise<AiGenerationResult[]> {
+    const { count, basePrompt, ...restOfOptions } = options
+
+    const generationPromises = Array.from({ length: count }, () => {
+      const prompt = basePrompt || "Suggest a social media post about a relevant topic for my audience."
+      return this.generateContent({ ...restOfOptions, prompt })
+    })
+
+    const results = await Promise.all(generationPromises)
+    return results
+  }
+
+  async generateSingleSuggestion(options: SuggestionGenerationOptions): Promise<AiGenerationResult> {
+    const { basePrompt, ...restOfOptions } = options
+    const prompt = basePrompt || "Suggest a social media post about a relevant topic for my audience."
+    return this.generateContent({ ...restOfOptions, prompt })
   }
 
   async canUserAccessAi(userId: string): Promise<AiAccessCheck> {

@@ -48,7 +48,14 @@ function RouteComponent() {
     refetch: refetchPosts
   } = useQuery({
     queryKey: ["posts", selectedIntegrationId],
-    queryFn: () => getPosts({ data: { integrationId: selectedIntegrationId } }),
+    queryFn: () => getPosts({ data: { integrationId: selectedIntegrationId! } }),
+    select: (posts) => {
+      return posts.sort((a, b) => {
+        const aDate = a.postedAt || a.scheduledAt || a.createdAt
+        const bDate = b.postedAt || b.scheduledAt || b.createdAt
+        return new Date(bDate).getTime() - new Date(aDate).getTime()
+      })
+    },
     enabled: !!selectedIntegrationId
   })
 
@@ -57,7 +64,7 @@ function RouteComponent() {
   // Get platform information
   const { data: platformInfo } = useQuery({
     queryKey: ["platform-info", currentIntegration?.platform],
-    queryFn: () => (currentIntegration ? getPlatformInfo({ data: currentIntegration.platform }) : undefined),
+    queryFn: () => (currentIntegration ? getPlatformInfo({ data: { platform: currentIntegration.platform } }) : undefined),
     enabled: !!currentIntegration?.platform
   })
 

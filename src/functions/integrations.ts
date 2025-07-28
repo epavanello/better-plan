@@ -1,5 +1,5 @@
 import { db } from "@/database/db"
-import { type Platform, integrations, userAppCredentials } from "@/database/schema/integrations"
+import { integrations, userAppCredentials } from "@/database/schema/integrations"
 import { getSessionOrThrow } from "@/lib/auth"
 import { getPlatformCredentialsInfo, getUserCredentialsInfo, validatePlatformCredentials } from "@/lib/server/integrations"
 import { PlatformFactory } from "@/lib/server/social-platforms/platform-factory"
@@ -29,8 +29,8 @@ export const getIntegrations = createServerFn({ method: "GET" }).handler(async (
 })
 
 export const deleteIntegration = createServerFn({ method: "POST" })
-  .validator((payload: string) => z.string().parse(payload))
-  .handler(async ({ data: integrationId }) => {
+  .validator(z.object({ integrationId: z.string() }))
+  .handler(async ({ data: { integrationId } }) => {
     const session = await getSessionOrThrow()
 
     await db.delete(integrations).where(and(eq(integrations.id, integrationId), eq(integrations.userId, session.user.id)))
@@ -40,15 +40,15 @@ export const deleteIntegration = createServerFn({ method: "POST" })
 
 // Funzione per verificare se una piattaforma necessita di credenziali utente
 export const getPlatformRequiresUserCredentials = createServerFn({ method: "GET" })
-  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
-  .handler(async ({ data: platform }) => {
-    return await getPlatformCredentialsInfo(platform)
+  .validator(z.object({ platform: z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]) }))
+  .handler(async ({ data: { platform } }) => {
+    return getPlatformCredentialsInfo(platform)
   })
 
 // Funzione per ottenere lo stato completo delle credenziali utente per una piattaforma
 export const getUserPlatformStatus = createServerFn({ method: "GET" })
-  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
-  .handler(async ({ data: platform }) => {
+  .validator(z.object({ platform: z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]) }))
+  .handler(async ({ data: { platform } }) => {
     const session = await getSessionOrThrow()
     const userInfo = await getUserCredentialsInfo(platform, session.user.id)
     const platformInfo = await getPlatformCredentialsInfo(platform)
@@ -61,8 +61,8 @@ export const getUserPlatformStatus = createServerFn({ method: "GET" })
 
 // Funzione per ottenere le credenziali utente per una piattaforma (solo se necessarie)
 export const getUserAppCredentials = createServerFn({ method: "GET" })
-  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
-  .handler(async ({ data: platform }) => {
+  .validator(z.object({ platform: z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]) }))
+  .handler(async ({ data: { platform } }) => {
     const session = await getSessionOrThrow()
     const userInfo = await getUserCredentialsInfo(platform, session.user.id)
 
@@ -144,8 +144,8 @@ export const saveUserAppCredentials = createServerFn({ method: "POST" })
 
 // Funzione per eliminare le credenziali utente
 export const deleteUserAppCredentials = createServerFn({ method: "POST" })
-  .validator((payload: Platform) => z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]).parse(payload))
-  .handler(async ({ data: platform }) => {
+  .validator(z.object({ platform: z.enum(["x", "reddit", "instagram", "tiktok", "youtube", "facebook", "linkedin"]) }))
+  .handler(async ({ data: { platform } }) => {
     const session = await getSessionOrThrow()
 
     await db

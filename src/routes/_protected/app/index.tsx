@@ -20,7 +20,7 @@ export const Route = createFileRoute("/_protected/app/")({
 function usePlatformSetup(platform: Platform) {
   const { data: platformStatus, refetch: refetchStatus } = useQuery({
     queryKey: ["platform-status", platform],
-    queryFn: () => getUserPlatformStatus({ data: platform }),
+    queryFn: () => getUserPlatformStatus({ data: { platform } }),
     enabled: true // Ora funziona per tutte le piattaforme
   })
 
@@ -81,7 +81,7 @@ function IntegrationsComponent() {
       setSetupPlatform(platform)
     } else {
       setAuthorizingPlatform(platform)
-      startAuthorization({ data: platform })
+      startAuthorization({ data: { platform } })
     }
   }
 

@@ -2,26 +2,11 @@ import { db } from "@/database/db"
 import { insertUserContextSchema, userContext } from "@/database/schema"
 import { getSessionOrThrow } from "@/lib/auth"
 import { aiService } from "@/lib/server/ai-service"
+import { aiGenerationOptionsSchema } from "@/lib/server/ai/types"
 import { createServerFn } from "@tanstack/react-start"
 import { eq } from "drizzle-orm"
-import { z } from "zod"
 
-const generateContentSchema = z.object({
-  prompt: z.string().min(1, "Prompt is required"),
-  integrationId: z.string().min(1, "Integration ID is required"),
-  maxTokens: z.number().optional(),
-  temperature: z.number().min(0).max(2).optional(),
-  // New tuning parameters
-  styleOverride: z.enum(["casual", "formal", "humorous", "professional", "conversational"]).optional(),
-  toneOverride: z.enum(["friendly", "professional", "authoritative", "inspirational", "educational"]).optional(),
-  lengthOverride: z.enum(["short", "medium", "long"]).optional(),
-  useEmojisOverride: z.boolean().optional(),
-  useHashtagsOverride: z.boolean().optional(),
-  customInstructionsOverride: z.string().optional(),
-  // For iterations - previous content to improve upon
-  previousContent: z.string().optional(),
-  iterationInstruction: z.string().optional()
-})
+const generateContentSchema = aiGenerationOptionsSchema.omit({ userId: true })
 
 export const generateAiContent = createServerFn({
   method: "POST"
@@ -42,19 +27,8 @@ export const generateAiContent = createServerFn({
 
     // Generate content with overrides
     const result = await aiService.generateContent({
-      prompt: data.prompt,
-      userId: session.user.id,
-      integrationId: data.integrationId,
-      maxTokens: data.maxTokens,
-      temperature: data.temperature,
-      styleOverride: data.styleOverride,
-      toneOverride: data.toneOverride,
-      lengthOverride: data.lengthOverride,
-      useEmojisOverride: data.useEmojisOverride,
-      useHashtagsOverride: data.useHashtagsOverride,
-      customInstructionsOverride: data.customInstructionsOverride,
-      previousContent: data.previousContent,
-      iterationInstruction: data.iterationInstruction
+      ...data,
+      userId: session.user.id
     })
 
     if (!result.success) {
