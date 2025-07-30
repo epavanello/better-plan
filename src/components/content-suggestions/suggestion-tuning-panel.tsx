@@ -4,10 +4,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import type { AiTuningParameters } from "@/lib/server/ai/types"
 import { cn } from "@/lib/utils"
 import { ChevronDown, ChevronUp } from "lucide-react"
 import { useState } from "react"
-import type { AiTuningParameters } from "@/lib/server/ai/types"
 
 export type { AiTuningParameters }
 
@@ -76,7 +76,7 @@ export function SuggestionTuningPanel({ parameters, onParametersChange, isGenera
               <Label>Style Override</Label>
               <Select
                 value={parameters.styleOverride}
-                onValueChange={(value) => handleParamChange("styleOverride", value || undefined)}
+                onValueChange={(value) => handleParamChange("styleOverride", value as AiTuningParameters["styleOverride"])}
                 disabled={isGenerating}
               >
                 <SelectTrigger>
@@ -96,7 +96,7 @@ export function SuggestionTuningPanel({ parameters, onParametersChange, isGenera
               <Label>Tone Override</Label>
               <Select
                 value={parameters.toneOverride}
-                onValueChange={(value) => handleParamChange("toneOverride", value || undefined)}
+                onValueChange={(value) => handleParamChange("toneOverride", value as AiTuningParameters["toneOverride"])}
                 disabled={isGenerating}
               >
                 <SelectTrigger>
@@ -117,7 +117,7 @@ export function SuggestionTuningPanel({ parameters, onParametersChange, isGenera
             <Label>Length Override</Label>
             <Select
               value={parameters.lengthOverride}
-              onValueChange={(value) => handleParamChange("lengthOverride", value || undefined)}
+              onValueChange={(value) => handleParamChange("lengthOverride", value as AiTuningParameters["lengthOverride"])}
               disabled={isGenerating}
             >
               <SelectTrigger>

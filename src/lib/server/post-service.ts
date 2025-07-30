@@ -1,12 +1,12 @@
 import { db } from "@/database/db"
 import { type PostMedia, postMedia, posts } from "@/database/schema"
 import type { Platform } from "@/database/schema/integrations"
+import type { CreatePostInput } from "@/functions/posts"
 import { getEffectiveCredentials } from "@/lib/server/integrations"
 import { eq } from "drizzle-orm"
 import { ulid } from "ulid"
 import type { PostData, PostDestination } from "./social-platforms/base-platform"
 import { PlatformFactory } from "./social-platforms/platform-factory"
-import type { CreatePostInput } from "@/functions/posts"
 
 interface CreatePostOptions extends CreatePostInput {
   userId: string
@@ -151,11 +151,11 @@ class PostService {
     // Parse destination data if present
     const destination: PostDestination | undefined = post.destinationType
       ? {
-        type: post.destinationType,
-        id: post.destinationId ?? "",
-        name: post.destinationName ?? "",
-        metadata: post.destinationMetadata ? JSON.parse(post.destinationMetadata) : undefined
-      }
+          type: post.destinationType,
+          id: post.destinationId ?? "",
+          name: post.destinationName ?? "",
+          metadata: post.destinationMetadata ? JSON.parse(post.destinationMetadata) : undefined
+        }
       : undefined
 
     // Parse additional fields if present
@@ -165,10 +165,10 @@ class PostService {
     const media =
       post.media.length > 0
         ? post.media.map((m) => ({
-          content: m.content,
-          mimeType: m.mimeType,
-          id: m.id
-        }))
+            content: m.content,
+            mimeType: m.mimeType,
+            id: m.id
+          }))
         : undefined
 
     return {

@@ -1,7 +1,6 @@
 import { db } from "@/database/db"
 import { posts } from "@/database/schema"
 import { and, eq, lte } from "drizzle-orm"
-import { getIntegrationWithValidToken } from "./integrations"
 import { postService } from "./post-service"
 
 export async function processScheduledPosts() {
