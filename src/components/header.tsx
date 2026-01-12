@@ -27,6 +27,9 @@ export function Header() {
                 <Link to="/app/suggestions" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Suggestions
                 </Link>
+                <Link to="/app/chat" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
+                  Chat
+                </Link>
                 <Link to="/app" className="font-medium text-muted-foreground text-sm transition-colors hover:text-foreground">
                   Platforms
                 </Link>
